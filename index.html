@@ -89,12 +89,13 @@ p{margin:.55em 0}
 @media(max-width:700px){.infobox{float:none;width:100%;margin:0 0 16px}}
 
 /* tables */
-table.wt{border-collapse:collapse;border:1px solid var(--rule);margin:12px 0;font-size:13.4px;width:100%}
-table.wt th{background:var(--th);border:1px solid var(--rule);padding:6px 9px;text-align:left;font-weight:700}
-table.wt td{border:1px solid var(--rule);padding:6px 9px;vertical-align:top}
+table.wt{border-collapse:collapse;border:1px solid var(--rule);margin:12px 0;font-size:13.4px;width:100%;table-layout:fixed;min-width:640px}
+table.wt th{background:var(--th);border:1px solid var(--rule);padding:6px 9px;text-align:left;font-weight:700;word-break:keep-all}
+table.wt td{border:1px solid var(--rule);padding:6px 9px;vertical-align:top;word-break:keep-all;overflow-wrap:anywhere}
 table.wt tr:hover td{background:#fbfcfd}
-.tblwrap{overflow-x:auto}
+.tblwrap{overflow-x:auto;clear:right;margin:12px 0}
 .nowrap{white-space:nowrap}
+p,li,dd{word-break:keep-all}
 .mono{font-family:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;font-size:12.4px}
 
 /* track chip */
@@ -908,8 +909,8 @@ function pageMain(){
 
   const tbl = (k) => {
     const rows = P.filter(p=>p.t===k).sort(byDate).map(p=>
-      `<tr><td class="nowrap">${wl("[["+p.s+"]]")}</td><td class="mono nowrap">${esc(p.aid)}</td><td class="mono nowrap">${p.d}</td><td>${wl(p.lead)}</td></tr>`).join("");
-    return `<div class="tblwrap"><table class="wt"><thead><tr><th style="width:15%">문서</th><th style="width:13%">식별자</th><th style="width:8%">시점</th><th>요약</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+      `<tr><td>${wl("[["+p.s+"]]")}</td><td class="mono">${esc(p.aid)}</td><td class="mono nowrap">${p.d}</td><td>${wl(p.lead)}</td></tr>`).join("");
+    return `<div class="tblwrap"><table class="wt"><thead><tr><th style="width:20%">문서</th><th style="width:16%">식별자</th><th style="width:9%">시점</th><th>요약</th></tr></thead><tbody>${rows}</tbody></table></div>`;
   };
 
   const body = `
@@ -1032,14 +1033,14 @@ function pagePaper(slug){
 function pageTrack(k){
   const tr = TRACKS[k]; if(!tr) return pageMain();
   const list = P.filter(p=>p.t===k).sort(byDate);
-  const rows = list.map(p=>`<tr><td class="nowrap">${wl("[["+p.s+"]]")}</td><td class="nowrap">${esc(p.org)}</td><td class="mono nowrap">${p.d}</td><td class="mono nowrap">${esc(p.aid)}</td><td>${wl(p.lead)}</td></tr>`).join("");
+  const rows = list.map(p=>`<tr><td>${wl("[["+p.s+"]]")}</td><td>${esc(p.org)}</td><td class="mono nowrap">${p.d}</td><td class="mono">${esc(p.aid)}</td><td>${wl(p.lead)}</td></tr>`).join("");
   const rel = PROBS.map((x,i)=>x.tr.includes(k)?`<li><a href="#/open-problems#p${i}">${x.h}</a></li>`:"").join("");
   const body = `<div class="infobox"><div class="ib-title">${esc(tr.full)}</div>
     <table><tr><th>약칭</th><td>${esc(tr.n)}</td></tr><tr><th>수록 문헌</th><td>${list.length}편</td></tr>
     <tr><th>기간</th><td class="mono">${list[0].d} – ${list[list.length-1].d}</td></tr></table></div>
     <p class="hat">${chip(k)} 계열의 문헌 목록. 상위 문서는 <a href="#/">로봇 매니퓰레이션 연구</a>다.</p>
     <p>이 계열에는 ${list.length}편의 문헌이 수록되어 있다. 시간순으로 정렬했다.</p>
-    <div class="tblwrap"><table class="wt"><thead><tr><th style="width:15%">문서</th><th style="width:13%">주체</th><th style="width:8%">시점</th><th style="width:13%">식별자</th><th>요약</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <div class="tblwrap"><table class="wt"><thead><tr><th style="width:19%">문서</th><th style="width:14%">주체</th><th style="width:9%">시점</th><th style="width:15%">식별자</th><th>요약</th></tr></thead><tbody>${rows}</tbody></table></div>
     <h2>관련 미해결 문제</h2><ul class="plain">${rel||"<li>없음</li>"}</ul>`;
   return shell(tr.full,"",body,["계열 문서",tr.n]);
 }
@@ -1048,16 +1049,16 @@ function pageTrack(k){
 function pageList(){
   const rows = P.slice().sort(byDate).reverse().map(p=>
     `<tr data-t="${p.t}" data-k="${(p.n+" "+p.full+" "+p.aid+" "+p.lead).toLowerCase()}">
-      <td>${chip(p.t)}</td><td class="nowrap">${wl("[["+p.s+"]]")}</td>
-      <td class="mono nowrap">${p.d}</td><td class="mono nowrap">${esc(p.aid)}</td>
-      <td class="nowrap">${esc(p.org)}</td><td>${wl(p.lead)}</td></tr>`).join("");
+      <td>${chip(p.t)}</td><td>${wl("[["+p.s+"]]")}</td>
+      <td class="mono nowrap">${p.d}</td><td class="mono">${esc(p.aid)}</td>
+      <td>${esc(p.org)}</td><td>${wl(p.lead)}</td></tr>`).join("");
   const body = `<p class="hat">전체 ${P.length}편. 최신순 정렬. 계열 단추와 검색창으로 걸러낸다.</p>
     <p style="margin:12px 0">
       <button class="fb" data-f="all">전체</button>
       ${Object.keys(TRACKS).map(k=>`<button class="fb" data-f="${k}">${TRACKS[k].n}</button>`).join("")}
       <input type="search" id="lq" placeholder="표제·식별자·요약 검색" style="font:inherit;font-size:13px;padding:4px 8px;border:1px solid var(--rule-soft);margin-left:8px">
     </p>
-    <div class="tblwrap"><table class="wt" id="lt"><thead><tr><th style="width:9%">계열</th><th style="width:14%">문서</th><th style="width:8%">시점</th><th style="width:12%">식별자</th><th style="width:13%">주체</th><th>요약</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+    <div class="tblwrap"><table class="wt" id="lt"><thead><tr><th style="width:10%">계열</th><th style="width:16%">문서</th><th style="width:9%">시점</th><th style="width:14%">식별자</th><th style="width:13%">주체</th><th>요약</th></tr></thead><tbody>${rows}</tbody></table></div>`;
   return shell("논문 목록","",body,["색인"]);
 }
 
@@ -1069,9 +1070,9 @@ function pageTimeline(){
      const list = P.filter(p=>p.d.startsWith(y)).sort(byDate);
      if(!list.length) return "";
      const rows = list.map(p=>`<tr><td class="mono nowrap">${p.d}</td><td>${chip(p.t)}</td>
-        <td class="nowrap">${p.key?"<b>":""}${wl("[["+p.s+"]]")}${p.key?"</b>":""}</td><td>${wl(p.lead)}</td></tr>`).join("");
+        <td>${p.key?"<b>":""}${wl("[["+p.s+"]]")}${p.key?"</b>":""}</td><td>${wl(p.lead)}</td></tr>`).join("");
      return `<h2 id="y${y}">${y}년 <span style="font-size:13px;color:var(--muted)">(${list.length}편)</span></h2>
-       <div class="tblwrap"><table class="wt"><tbody>${rows}</tbody></table></div>`;
+       <div class="tblwrap"><table class="wt"><colgroup><col style="width:9%"><col style="width:13%"><col style="width:21%"><col></colgroup><tbody>${rows}</tbody></table></div>`;
    }).join("");
   return shell("연표","",body,["연표"]);
 }
