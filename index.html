@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>로봇 매니퓰레이션 연구 — 위키</title>
+<style>
+:root{
+  --link:#3366cc; --link-v:#795cb2; --red:#d73333;
+  --rule:#a2a9b1; --rule-soft:#c8ccd1; --box:#f8f9fa; --th:#eaecf0;
+  --ink:#202122; --muted:#54595d;
+  --vla:#2b54d4; --rfm:#6e3fb0; --traj:#0e7c63; --mpc:#c05024; --data:#8a6a00;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;background:#fff;color:var(--ink);
+  font-family:-apple-system,"Segoe UI",Roboto,"Helvetica Neue","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  font-size:14.6px;line-height:1.65;
+}
+a{color:var(--link);text-decoration:none}
+a:hover{text-decoration:underline}
+a.new{color:var(--red)}
+a.ext::after{content:"\2197";font-size:.8em;vertical-align:super;margin-left:1px;opacity:.7}
+:focus-visible{outline:2px solid var(--link);outline-offset:1px}
+
+/* layout */
+#shell{display:flex;align-items:flex-start}
+#side{
+  width:190px;flex:0 0 190px;padding:14px 12px 40px;
+  border-right:1px solid var(--rule-soft);min-height:100vh;background:#fff;
+  position:sticky;top:0;max-height:100vh;overflow-y:auto;
+}
+#side .brand{font-family:Georgia,"Times New Roman",serif;font-size:19px;line-height:1.2;margin-bottom:2px}
+#side .brand small{display:block;font-family:inherit;font-size:11px;color:var(--muted);letter-spacing:.02em;margin-top:3px}
+#side hr{border:0;border-top:1px solid var(--rule-soft);margin:14px 0}
+#side h4{font-size:11.5px;color:var(--muted);font-weight:400;margin:0 0 4px;padding-bottom:3px;border-bottom:1px solid var(--rule-soft)}
+#side ul{list-style:none;margin:0 0 16px;padding:0;font-size:13px;line-height:1.95}
+#side li.cur a{font-weight:700;color:var(--ink)}
+#side input{width:100%;font:inherit;font-size:13px;padding:4px 7px;border:1px solid var(--rule-soft);margin-bottom:6px}
+#results{font-size:12.5px;line-height:1.8;max-height:230px;overflow:auto}
+#results div{padding:1px 0}
+
+#main{flex:1;min-width:0;padding:12px 34px 60px;max-width:1000px}
+@media(max-width:900px){
+  #shell{display:block}
+  #side{width:auto;position:static;max-height:none;min-height:0;border-right:0;border-bottom:1px solid var(--rule-soft)}
+  #main{padding:12px 18px 50px}
+}
+
+/* article chrome */
+.tabs{border-bottom:1px solid var(--rule);font-size:12.5px;color:var(--muted);padding-bottom:4px;margin-bottom:14px}
+.tabs a{margin-right:14px}
+h1.title{
+  font-family:Georgia,"Times New Roman",serif;font-weight:400;
+  font-size:28px;line-height:1.25;margin:0 0 .25em;padding-bottom:.15em;
+  border-bottom:1px solid var(--rule);
+}
+h2{
+  font-family:Georgia,"Times New Roman",serif;font-weight:400;font-size:21px;
+  margin:1.5em 0 .5em;padding-bottom:.15em;border-bottom:1px solid var(--rule);
+}
+h3{font-family:Georgia,"Times New Roman",serif;font-weight:700;font-size:16.5px;margin:1.3em 0 .4em}
+p{margin:.55em 0}
+.hat{font-style:italic;color:var(--muted);margin:.2em 0 .9em;padding-left:1.6em;font-size:13.6px}
+.note-box{border:1px solid var(--rule-soft);border-left:4px solid var(--rule);background:var(--box);padding:9px 14px;margin:14px 0;font-size:13.6px;color:var(--muted)}
+.stub{border:1px solid var(--rule-soft);background:var(--box);padding:8px 14px;margin:20px 0;font-size:13px;font-style:italic;color:var(--muted)}
+
+/* toc */
+.toc{display:inline-block;border:1px solid var(--rule);background:var(--box);padding:8px 20px 10px 12px;margin:14px 0 6px;font-size:13.4px}
+.toc .h{text-align:center;font-weight:700;margin-bottom:5px}
+.toc ol{list-style:none;counter-reset:s;margin:0;padding:0}
+.toc ol ol{padding-left:16px;counter-reset:ss}
+.toc li{counter-increment:s;line-height:1.85}
+.toc ol ol li{counter-increment:ss}
+.toc li::before{content:counter(s)" ";color:var(--ink)}
+.toc ol ol li::before{content:counter(s)"."counter(ss)" "}
+
+/* infobox */
+.infobox{
+  float:right;clear:right;width:23.5em;max-width:100%;margin:0 0 14px 20px;
+  border:1px solid var(--rule);background:var(--box);font-size:12.8px;line-height:1.5;
+}
+.infobox .ib-title{background:var(--th);text-align:center;font-weight:700;padding:7px 8px;font-size:13.5px;border-bottom:1px solid var(--rule)}
+.infobox .ib-sub{text-align:center;padding:5px 8px;color:var(--muted);border-bottom:1px solid var(--rule-soft);font-style:italic}
+.infobox table{width:100%;border-collapse:collapse}
+.infobox th{text-align:left;vertical-align:top;width:34%;padding:5px 8px;color:var(--muted);font-weight:400;border-bottom:1px solid #e6e8ea}
+.infobox td{padding:5px 8px;border-bottom:1px solid #e6e8ea;word-break:break-word}
+.infobox tr:last-child th,.infobox tr:last-child td{border-bottom:0}
+@media(max-width:700px){.infobox{float:none;width:100%;margin:0 0 16px}}
+
+/* tables */
+table.wt{border-collapse:collapse;border:1px solid var(--rule);margin:12px 0;font-size:13.4px;width:100%}
+table.wt th{background:var(--th);border:1px solid var(--rule);padding:6px 9px;text-align:left;font-weight:700}
+table.wt td{border:1px solid var(--rule);padding:6px 9px;vertical-align:top}
+table.wt tr:hover td{background:#fbfcfd}
+.tblwrap{overflow-x:auto}
+.nowrap{white-space:nowrap}
+.mono{font-family:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;font-size:12.4px}
+
+/* track chip */
+.tk{display:inline-block;padding:0 6px;border:1px solid;font-size:11.5px;line-height:1.6;white-space:nowrap;vertical-align:1px}
+
+/* refs */
+ol.refs{font-size:12.9px;line-height:1.75;padding-left:2em}
+ol.refs li{margin-bottom:3px}
+sup.ref{font-size:.78em;vertical-align:super;line-height:0}
+
+/* categories footer */
+.cats{border:1px solid var(--rule-soft);background:var(--box);padding:7px 12px;margin-top:34px;font-size:12.8px}
+.cats b{font-weight:700}
+.foot{margin-top:14px;padding-top:10px;border-top:1px solid var(--rule-soft);font-size:12px;color:var(--muted)}
+
+ul.plain{margin:.4em 0;padding-left:1.5em}
+ul.plain li{margin:2px 0}
+dl dt{font-weight:700;margin-top:9px}
+dl dd{margin:0 0 0 1.6em}
+</style>
+</head>
+<body>
+<div id="shell">
+  <nav id="side">
+    <div class="brand">로봇 매니퓰레이션<small>연구 문헌 위키 · 2026-09</small></div>
+    <hr>
+    <input type="search" id="q" placeholder="문서 검색" aria-label="문서 검색" autocomplete="off">
+    <div id="results"></div>
+    <h4>둘러보기</h4>
+    <ul id="nav-main"></ul>
+    <h4>계열</h4>
+    <ul id="nav-track"></ul>
+    <h4>도구</h4>
+    <ul>
+      <li><a href="#/list">전체 논문 목록</a></li>
+      <li><a href="#/timeline">연표</a></li>
+      <li><a href="#/open-problems">미해결 문제</a></li>
+    </ul>
+  </nav>
+  <main id="main"></main>
+</div>
+
+<script>
+/* ═══════════════════ 데이터 ═══════════════════ */
+
+const TRACKS = {
+  vla:  {n:"VLA",            full:"Vision-Language-Action 모델", c:"var(--vla)"},
+  rfm:  {n:"파운데이션·월드모델", full:"로봇 파운데이션 모델과 월드 모델", c:"var(--rfm)"},
+  traj: {n:"궤적 최적화",     full:"Trajectory Optimization",    c:"var(--traj)"},
+  mpc:  {n:"MPC",            full:"모델예측제어",                c:"var(--mpc)"},
+  data: {n:"데이터·평가",     full:"데이터셋과 벤치마크",         c:"var(--data)"}
+};
+
+// s=slug, n=표제, full=원제, org=주체, d=시점, aid=식별자, venue, key=주요문서
+// lead=요약, body=[[제목, 문단...], ...], see=관련문서
+const P = [
+/* ───────── VLA ───────── */
+{s:"rt2",t:"vla",n:"RT-2",full:"RT-2: Vision-Language-Action Models Transfer Web Knowledge to Robotic Control",org:"Google DeepMind",d:"2023-07",aid:"arXiv:2307.15818",venue:"CoRL 2023",key:1,
+ lead:"사전학습된 시각-언어 모델을 로봇 데모로 파인튜닝해 이산화된 액션 토큰을 직접 출력하게 만든 최초의 대표 사례로, 오늘날 통용되는 VLA라는 범주 자체를 정립했다.",
+ body:[
+  ["개요","PaLI-X와 PaLM-E를 백본으로 삼아, 카메라 이미지와 텍스트 지시를 입력받고 이산 토큰으로 인코딩된 로봇 액션을 출력한다. 웹 규모 데이터로 학습된 의미 지식이 로봇 제어로 전이될 수 있다는 것을 보인 점이 핵심 주장이다."],
+  ["영향","이후 [[openvla]], [[pi0]] 등 거의 모든 후속 연구가 이 논문의 문제 설정을 계승한다. 다만 액션의 이산 표현이 가진 양자화 오차와 자기회귀 디코딩의 속도 한계는 그대로 물려받아, 이후 [[fast]]와 연속 액션 계열이 이를 각각 다른 방향에서 해소하려 한다."]],
+ see:["openvla","pi0","fast"]},
+
+{s:"octo",t:"vla",n:"Octo",full:"Octo: An Open-Source Generalist Robot Policy",org:"UC Berkeley 외",d:"2024-05",aid:"arXiv:2405.12213",venue:"RSS 2024",
+ lead:"Open X-Embodiment의 약 80만 데모로 학습한 93M 규모의 경량 오픈소스 generalist 정책. 트랜스포머 임베딩을 확산 헤드로 디코딩해 액션을 만든다.",
+ see:["oxe","openvla"]},
+
+{s:"openvla",t:"vla",n:"OpenVLA",full:"OpenVLA: An Open-Source Vision-Language-Action Model",org:"Stanford · UC Berkeley · TRI 외",d:"2024-06",aid:"arXiv:2406.09246",venue:"CoRL 2024",key:1,
+ lead:"오픈소스 generalist VLA. 액션 토큰을 LLaMA 토크나이저의 저빈도 토큰 256개 자리에 직접 끼워 넣어, 액션 생성을 텍스트와 동일한 next-token prediction 문제로 다룬다.",
+ body:[
+  ["액션 표현","각 액션 차원을 분위수 기반으로 256개 구간에 매핑한다. 구현이 단순하고 트랜스포머 스택을 그대로 쓸 수 있다는 것이 장점이지만, 양자화 오차가 남고 자기회귀 디코딩 탓에 추론이 느리다."],
+  ["위치","2024년 이후 오픈소스 비교 실험의 사실상 기준선이 되었다. 후속 [[openvla-oft]]가 파인튜닝 레시피를 정비했고, 촉각 계열 논문 다수가 이 모델을 백본으로 삼아 잔차를 학습한다([[vitar]] 등)."]],
+ see:["openvla-oft","rt2","fast","vitar"]},
+
+{s:"rdt1b",t:"vla",n:"RDT-1B",full:"RDT-1B: a Diffusion Foundation Model for Bimanual Manipulation",org:"칭화대",d:"2024-10",aid:"arXiv:2410.07864",venue:"ICLR 2025",
+ lead:"양팔 조작을 목표로 한 확산 기반 파운데이션 모델. 이후 [[agibot-go1]]의 비교 대상으로 자주 인용된다.",
+ see:["agibot-go1"]},
+
+{s:"pi0",t:"vla",n:"π0",full:"π0: A Vision-Language-Action Flow Model for General Robot Control",org:"Physical Intelligence",d:"2024-10",aid:"arXiv:2410.24164",venue:"arXiv 프리프린트",key:1,
+ lead:"약 3B 규모의 PaliGemma 백본에 300M 규모 flow matching action expert를 결합한 구조로, 이산 토큰의 양자화 없이 연속 액션 청크를 생성한다. π 계열 전체의 출발점이다.",
+ body:[
+  ["구조","VLM 백본이 시각·언어·상태를 인코딩하고, 별도의 작은 action expert가 그 은닉 상태를 조건으로 flow matching을 수행한다. 학습 시 잡음 섞인 액션 청크를 입력받아 흐름장을 예측하고, 추론 시 이를 적분해 청크를 복원한다."],
+  ["보고된 결과","세탁물 접기, 박스 조립 같은 양팔 과제에서 당시 최고 성능을 보고했다."],
+  ["의의와 한계","연속 표현은 다봉 액션 분포를 잘 다루고 고주파 제어에 적합하지만, 수렴에 훨씬 큰 연산 예산이 필요하다는 점이 후속 논문들에서 반복 지적된다. 이 문제는 [[knowledge-insulation]]에서 이산 토큰과의 하이브리드 학습으로 다뤄진다."]],
+ see:["pi05","fast","knowledge-insulation","pistar06"]},
+
+{s:"fast",t:"vla",n:"FAST",full:"FAST: Efficient Action Tokenization for Vision-Language-Action Models",org:"Physical Intelligence",d:"2025-01",aid:"arXiv:2501.09747",venue:"RSS 2025",key:1,
+ lead:"액션 청크에 이산 코사인 변환을 적용해 차원 간 상관을 제거한 뒤 바이트 페어 인코딩으로 압축하는 액션 토크나이저. 자기회귀 VLA의 속도 병목을 크게 완화했다.",
+ body:[
+  ["방법","시간축마다 액션 차원에 DCT를 걸어 성분을 탈상관시키고, 결과 시퀀스를 BPE로 압축한다. 한 서베이의 계산으로는 50스텝 × 16차원의 청크가 16~32 토큰으로 줄어든다."],
+  ["활용","[[pi05]]에서 상위 계층의 이산 서브골 표현으로 쓰이고, [[knowledge-insulation]]에서는 백본을 파인튜닝하는 대체 학습 신호로 쓰인다. 후속 [[faster]]는 신경 토크나이저로 같은 문제를 다시 공략한다."]],
+ see:["pi05","knowledge-insulation","faster","openvla"]},
+
+{s:"openvla-oft",t:"vla",n:"OpenVLA-OFT",full:"Fine-Tuning Vision-Language-Action Models: Optimizing Speed and Success",org:"Stanford",d:"2025-02",aid:"arXiv:2502.19645",venue:"arXiv 프리프린트",
+ lead:"OpenVLA의 파인튜닝 레시피를 정비해 추론 속도와 성공률을 함께 올린 연구. 이산 액션 VLA의 3~5Hz 추론 한계를 지적한 근거로 자주 인용된다.",
+ see:["openvla","fast"]},
+
+{s:"conrft",t:"vla",n:"ConRFT",full:"ConRFT: A Reinforced Fine-tuning Method for VLA Models via Consistency Policy",org:"중국과학원 자동화연구소",d:"2025-02",aid:"arXiv:2502.05450",venue:"arXiv 프리프린트",
+ lead:"일관성 정책을 활용한 VLA 강화 파인튜닝. VLA 사후학습 RL 계열의 초기 사례 중 하나다.",
+ see:["pistar06","pirl"]},
+
+{s:"safevla",t:"vla",n:"SafeVLA",full:"SafeVLA: Towards Safety Alignment of Vision-Language-Action Model via Constrained Learning",org:"북경대 외",d:"2025-03",aid:"arXiv:2503.03480",venue:"NeurIPS 2025 spotlight",key:1,
+ lead:"제약 마르코프 결정과정 틀에서 안전 제약을 VLA 학습에 명시적으로 통합한 연구. 안전 위반 누적 비용을 83.58% 줄였다고 보고했다.",
+ body:[
+  ["방법","안전 요구사항을 모델링하고, 다양한 불안전 행동을 능동적으로 유도해 드러낸 뒤, 안전 강화학습으로 정책을 제약하고 표적 평가로 검증하는 통합 접근을 제안한다. 유도된 위험에 대해 min-max 관점으로 최적화한다."],
+  ["평가와 한계","성능 손실 없이 안전 지표를 개선했다고 보고하지만, 이는 통계적 개선이지 보증이 아니다. [[vla-arena]]는 현행 VLA 다수가 안전 제약을 아예 고려하지 않는다는 것을 별도로 실측했다."]],
+ see:["probeact","vla-arena","open-challenges"]},
+
+{s:"groot-n1",t:"vla",n:"GR00T N1",full:"GR00T N1: An Open Foundation Model for Generalist Humanoid Robots",org:"NVIDIA",d:"2025-03",aid:"arXiv:2503.14734",venue:"arXiv 프리프린트",
+ lead:"휴머노이드를 겨냥한 최초의 오픈 파운데이션 모델. 이후 N1.5, 상용 라이선스가 붙은 N1.7을 거쳐 [[groot-n2]]로 이어진다.",
+ body:[
+  ["계보","실제 수집 데이터, 합성 데이터, 인터넷 규모 영상을 섞어 학습하며, 특정 embodiment·과제·환경에 대한 사후학습으로 적응시키는 구조를 취한다. 시뮬레이션 스택(Isaac Lab), 미들웨어(Isaac ROS), 온보드 추론 하드웨어(Jetson Thor)와 묶인 플랫폼 전략의 일부다."]],
+ see:["groot-n2","dreamzero"]},
+
+{s:"pi05",t:"vla",n:"π0.5",full:"π0.5: a Vision-Language-Action Model with Open-World Generalization",org:"Physical Intelligence",d:"2025-04",aid:"arXiv:2504.16054",venue:"CoRL 2025",key:1,
+ lead:"실제 가정 환경 배치를 목표로 한 π 계열의 두 번째 세대. 상위 계층이 [[fast]] 토크나이저로 학습된 이산 토큰을 내고, 그것을 조건으로 하위 flow matching 계층이 연속 제어를 만드는 계층 구조를 명시적으로 채택했다.",
+ body:[
+  ["이중 구조","이른바 System 2에 해당하는 VLM이 서브골을 이산 토큰으로 표현하고, System 1에 해당하는 action expert가 이를 받아 고주파 제어를 담당한다. 의미 추론과 실시간 제어의 시간 스케일을 분리한 설계다."],
+  ["평가","LIBERO 계열 시뮬레이션 벤치마크에서 [[pi0]]을 상회하는 수치가 여러 후속 논문의 비교표에 보고되어 있다. 다만 벤치마크 자체의 신뢰성 문제는 [[vla-arena]]와 [[robotarena-inf]]가 별도로 제기한다."]],
+ see:["pi0","fast","pistar06","pi07"]},
+
+{s:"knowledge-insulation",t:"vla",n:"Knowledge Insulation",full:"Knowledge Insulating Vision-Language-Action Models: Train Fast, Run Fast, Generalize Better",org:"Physical Intelligence",d:"2025-05",aid:"arXiv:2505.23705",venue:"ICLR 2026",key:1,
+ lead:"연속 action expert를 VLM에 그대로 붙이면 학습 속도와 지식 전이가 모두 손상된다는 것을 실증하고, 백본으로의 그래디언트 역전파를 차단하는 학습 레시피를 제안했다. [[pi07]]까지 이어지는 표준이 되었다.",
+ body:[
+  ["문제","초기화되지 않은 action expert의 그래디언트가 사전학습된 VLM 백본으로 흘러 들어가면, 백본이 축적한 의미 지식이 훼손되어 언어 지시 해석 능력과 최종 정책 성능이 함께 떨어진다."],
+  ["해법","백본은 이산화된 액션 토큰으로 파인튜닝하고, action expert는 별도로 연속 액션을 내도록 학습하되 그 그래디언트는 백본에 전달하지 않는다. 이산 토큰이 초기화되지 않은 가중치의 영향을 받지 않는 대체 학습 신호 역할을 한다. 액션 인코딩에는 [[fast]]를 쓴다."]],
+ see:["pi0","fast","pi07","pi05"]},
+
+{s:"reinflow",t:"vla",n:"ReinFlow",full:"ReinFlow: Fine-tuning Flow Matching Policy with Online Reinforcement Learning",org:"칭화대",d:"2025-05",aid:"arXiv:2505.22094",venue:"arXiv 프리프린트",
+ lead:"flow matching 정책의 온라인 RL 파인튜닝 기법.",
+ see:["pirl","pistar06"]},
+
+{s:"pirl",t:"vla",n:"π_RL",full:"π_RL: Online RL Fine-tuning for Flow-based Vision-Language-Action Models",org:"칭화대 외",d:"2025-10",aid:"arXiv:2510.25889",venue:"arXiv 프리프린트",
+ lead:"flow 기반 VLA에 대한 온라인 강화학습 파인튜닝. 2026년 VLA 사후학습 RL 흐름의 한 갈래다.",
+ see:["pistar06","reinflow","z1"]},
+
+{s:"pistar06",t:"vla",n:"π*0.6 / RECAP",full:"π*0.6: a VLA That Learns From Experience",org:"Physical Intelligence",d:"2025-11",aid:"arXiv:2511.14759",venue:"arXiv 프리프린트",key:1,
+ lead:"모방학습의 근본 문제인 오차 누적을 실배치 강화학습으로 다룬 연구. advantage conditioning을 통해 데모, 자율 수집 데이터, 전문가의 실시간 개입 교정을 하나의 학습 신호로 통합한다.",
+ body:[
+  ["RECAP","이점(advantage)을 조건으로 받는 정책을 학습한다. 좋은 행동과 나쁜 행동을 모두 포함한 전체 데이터를 유지하되, 어느 쪽이 좋은지를 이점 주석으로만 알려주는 방식이다. 데이터를 버리지 않으므로 일반화에 유리하다는 것이 저자들의 설계 근거다. 실행 시에는 높은 이점을 갖는 행동을 선택하게 해 학습 데이터 자체보다 나은 정책을 얻는다."],
+  ["파이프라인","오프라인 RL로 generalist를 사전학습해 π*0.6을 얻고, 이를 다운스트림 과제에 온로봇 데이터 수집으로 특화시킨다. 자율 실행 중 제공되는 원격조작 개입도 학습 신호로 흡수한다."],
+  ["보고된 결과","가장 어려운 과제에서 처리량 2배 이상, 실패율 2배 이상 감소. 실증 과제는 에스프레소 제조, 골판지 박스 조립, 다양한 종류의 세탁물 접기다."],
+  ["저자들이 남긴 한계","VLA를 실사용 신뢰도까지 끌어올리는 가장 직접적인 경로가 RL로 보이지만, 대용량 모델의 대규모 RL 학습 안정성, 표본 복잡도, 자율성, 지연된 피드백이 모두 미해결이며 LLM용 RL 프레임워크는 출발점 정도만 제공한다고 명시했다."]],
+ see:["pi05","pi07","pirl","open-problems"]},
+
+{s:"open-challenges",t:"vla",n:"10 Open Challenges",full:"10 Open Challenges Steering the Future of Vision-Language-Action Models",org:"NTU · SUTD · NUS · Stanford 외",d:"2025-11",aid:"arXiv:2511.05936",venue:"AAAI 2026",key:1,
+ lead:"VLA 연구의 미해결 과제를 열 갈래로 정리한 문헌. 이 위키의 미해결 문제 문서에서 가장 자주 인용하는 근거다.",
+ body:[
+  ["열 가지 과제","멀티모달 감각과 인식, 견고한 추론, 양질의 학습 데이터, 평가, cross-robot 액션 일반화, 자원 효율, 전신 협응, 안전 보증, 에이전트 프레임워크, 인간-로봇 협조."],
+  ["부수적 기여","이산 액션 모델과 연속 액션 모델의 트레이드오프를 명시적으로 정리한 절이 특히 자주 참조된다. 이산 표현은 구현이 단순하지만 양자화 오차와 3~5Hz 수준의 추론 속도 때문에 고주파 제어와 양팔 조작에 부적합하고, 연속 표현은 충실도가 높지만 수렴 연산 예산이 크다는 것이다."],
+  ["제안 방향","계층적 계획, 깊이 정보를 통한 공간 이해 보강, 범용 액션 표현, 세계 동역학 모델링, 생성 모델 기반 데이터 합성, 사후학습을 유망한 흐름으로 꼽는다."]],
+ see:["open-problems","vla-arena","dreamzero"]},
+
+{s:"faster",t:"vla",n:"FASTer",full:"FASTer: Toward Efficient Autoregressive VLA Modeling via Neural Action Tokenization",org:"—",d:"2025-12",aid:"arXiv:2512.04952",venue:"arXiv 프리프린트",
+ lead:"신경 액션 토크나이저로 자기회귀 VLA의 효율을 개선한 후속 연구. LIBERO와 Simpler-Bridge 비교표를 제공한다.",
+ see:["fast"]},
+
+{s:"tafvla",t:"vla",n:"TaF-VLA",full:"Tactile-Force Alignment in Vision-Language-Action Models for Force-aware Manipulation",org:"—",d:"2026-01",aid:"arXiv:2601.20321",venue:"arXiv 프리프린트",
+ lead:"촉각과 힘을 정렬한 토큰을 언어-액션 스트림에 끼워 넣어 힘 인식 조작을 수행한다. 힘이 중요한 일상 과제 7종에서 기존 시각-촉각 정렬 기준선 대비 평균 22% 성공률 개선을 보고했다.",
+ see:["forcevla2","vitar","ftp1"]},
+
+{s:"craft",t:"vla",n:"CRAFT",full:"CRAFT: Adapting VLA Models to Contact-rich Manipulation via Force-aware Curriculum Fine-tuning",org:"—",d:"2026-02",aid:"arXiv:2602.12532",venue:"arXiv 프리프린트",
+ lead:"시각·언어 임베딩 뒤에 변분 정보 병목을 넣어 학습 초기에 힘 모달리티를 우선하게 만들고 이후 시각·언어 기여를 회복시키는 커리큘럼 파인튜닝. USB 삽입, 카톤 뒤집기, 화이트보드 닦기, 점토 밀기로 검증했다.",
+ see:["tafvla","forcevla2"]},
+
+{s:"tacvla",t:"vla",n:"TacVLA",full:"TacVLA: Contact-aware Tactile Fusion for Robust VLA Manipulation",org:"—",d:"2026-03",aid:"arXiv:2603.12665",venue:"arXiv 프리프린트",
+ lead:"접촉 인식 촉각 융합을 통해 VLA의 조작 견고성을 높이려는 연구.",
+ see:["tafvla","ftp1"]},
+
+{s:"forcevla2",t:"vla",n:"ForceVLA2",full:"ForceVLA2: Unleashing Hybrid Force-Position Control with Force Awareness",org:"—",d:"2026-03",aid:"arXiv:2603.15169",venue:"arXiv 프리프린트",
+ lead:"힘 인식 전문가 혼합 구조와 힘-위치 하이브리드 제어를 결합했다. 선행 ForceVLA는 NeurIPS에 게재되었다.",
+ see:["tafvla","craft"]},
+
+{s:"snapflow",t:"vla",n:"SnapFlow",full:"SnapFlow: One-step Action Generation for Flow-matching VLAs via Progressive Self-distillation",org:"—",d:"2026-04",aid:"arXiv:2604.05656",venue:"arXiv 프리프린트",
+ lead:"점진적 자기증류로 flow matching VLA의 액션 생성을 1스텝으로 압축한다. ManiFlow, MP1과 함께 추론 지연 축을 공략하는 계열이다.",
+ see:["pi0","open-challenges"]},
+
+{s:"pi07",t:"vla",n:"π0.7",full:"π0.7: a Steerable Generalist Robotic Foundation Model with Emergent Capabilities",org:"Physical Intelligence",d:"2026-04",aid:"arXiv:2604.15483",venue:"arXiv 프리프린트",key:1,
+ lead:"π 계열의 최신 세대. 무엇을 할지뿐 아니라 어떤 방식과 전략으로 할지를 프롬프트에 담는 다양한 컨텍스트 조건화를 핵심 아이디어로 삼는다.",
+ body:[
+  ["다양한 컨텍스트 조건화","학습 시 모델을 언어 명령만이 아니라 서브골 이미지를 포함한 멀티모달 정보로 조건화한다. 그 결과 배치 시 프롬프트만으로 동일 과제를 서로 다른 전략으로 수행하도록 정밀하게 조종할 수 있다는 것이 논문의 주장이다."],
+  ["학습 데이터","데모뿐 아니라 실패를 포함한 준최적 자율 데이터, 그리고 비로봇 출처 데이터를 함께 섞는다. [[pistar06]] 계열이 축적한 자율 데이터를 활용한다. 학습 레시피는 [[knowledge-insulation]]을 따른다."],
+  ["보고된 능력","미지 환경에서 여러 주방 기기를 다루는 다단계 지시 수행, 학습에서 본 적 없는 로봇으로 세탁물을 접는 zero-shot cross-embodiment 일반화, 그리고 에스프레소 머신 조작에서 RL로 특화된 전문 모델과 대등한 out-of-the-box 성능."],
+  ["평가 시 유의점","제시된 수치는 자체 평가이며 독립 재현이 없다. cross-embodiment 주장에 대해서는 [[robotarena-inf]]의 상반된 실측을 함께 볼 필요가 있다."]],
+ see:["pi05","pistar06","knowledge-insulation","robotarena-inf"]},
+
+{s:"atvla",t:"vla",n:"AT-VLA",full:"AT-VLA: Adaptive Tactile Injection for Enhanced Feedback Reaction",org:"—",d:"2026-05",aid:"arXiv:2605.07308",venue:"arXiv 프리프린트",
+ lead:"사전학습 지식과 새로 주입되는 촉각 피드백 사이의 균형을 관리해, 비접촉 단계의 시각 성능을 훼손하지 않으면서 접촉 단계 반응성을 확보한다.",
+ see:["tafvla","vitar"]},
+
+{s:"probeact",t:"vla",n:"ProbeAct",full:"ProbeAct: Probe-Guided Training-Free Failure Recovery in VLA Models",org:"—",d:"2026-06",aid:"arXiv:2606.09740",venue:"arXiv 프리프린트",key:1,
+ lead:"학습이 필요 없는 플러그앤플레이 안전망. 은닉 상태 프로브, 기구학 기반 실패 감지 상태 기계, 계층적 제어 장벽 함수 필터의 세 요소로 구성된다.",
+ body:[
+  ["구성","첫째, VLA 중간 특징에서 과제 관련 물체의 3차원 위치를 예측하는 경량 다중 표적 프로브와 헝가리안 매칭 기반 정체성 추적. 둘째, 그리퍼 내부 신호와 엔드이펙터 기구학만으로 파지·이송·배치 실패를 감지하는 물체 무관 상태 기계. 셋째, 반복 실패 위치를 소프트 안전집합 제약으로 인코딩해 VLA 액션을 최소 침습으로 교정하는 계층적 CBF 필터."],
+  ["결과","LIBERO-plus에서 OpenVLA-OFT의 성공률을 69.6%에서 74.1%로 올렸다. 기존 학습 파이프라인과 직교하므로 베이스 모델과 파인튜닝 모델 양쪽에 붙일 수 있다."],
+  ["위치","학습 정책 위에 제어 이론적 안전 계층을 사후에 얹는 접근의 대표 사례로, 미해결 문제 중 학습과 최적화 계층의 인터페이스 항목에서 다시 다룬다."]],
+ see:["safevla","open-problems","openvla-oft"]},
+
+{s:"ftp1",t:"vla",n:"FTP-1",full:"FTP-1: A Generalist Foundation Tactile Policy Across Tactile Sensors",org:"—",d:"2026-06",aid:"arXiv:2606.13102",venue:"arXiv 프리프린트",key:1,
+ lead:"서로 다른 촉각 센서를 가로질러 동작하는 일반 촉각 정책. 촉각 하드웨어의 이질성을 정면 목표로 삼은 드문 시도다.",
+ body:[
+  ["문제 설정","촉각 계열 연구 대부분이 특정 센서와 특정 과제군에 묶여 있어, 센서를 바꾸면 정책을 다시 학습해야 한다. 이 표준화 부재가 촉각을 대규모 사전학습 코퍼스에 편입시키지 못하는 실질적 이유 중 하나다."]],
+ see:["tafvla","tacforesight","open-problems"]},
+
+{s:"tacforesight",t:"vla",n:"TacForeSight",full:"TacForeSight: Force-Guided Tactile World Model for Contact-Rich Manipulation",org:"—",d:"2026-06",aid:"arXiv:2606.11184",venue:"arXiv 프리프린트",
+ lead:"손목 힘·토크 신호로 촉각 잠재 예측을 조건화한다. 반응적 특징 융합에서 예측적 패러다임으로 넘어가려는 시도로, 전역 힘·토크 변화와 국소 촉각 변화 사이의 비대칭 관계를 포착한다고 주장한다.",
+ see:["ftp1","dreamzero"]},
+
+{s:"z1",t:"vla",n:"Z-1",full:"Z-1: Efficient Reinforcement Learning for Vision-Language-Action Models",org:"—",d:"2026-06",aid:"arXiv:2606.31846",venue:"arXiv 프리프린트",
+ lead:"VLA를 위한 효율적 강화학습 기법. [[pistar06]]이 남긴 표본 복잡도 문제를 겨냥한다.",
+ see:["pistar06","pirl"]},
+
+{s:"gemini-robotics-2",t:"vla",n:"Gemini Robotics 2",full:"Gemini Robotics 2 (VLA · ER 2 · On-Device 2)",org:"Google DeepMind",d:"2026-07",aid:"릴리스 (논문 미공개)",venue:"공식 블로그 · 모델 카드",key:1,
+ lead:"2026년 7월 30일 공개된 Google DeepMind의 로봇 모델 묶음. 이전 세대가 주로 상체 조작을 다뤘던 데 비해 발끝에서 손끝까지의 전신 제어를 목표로 한다.",
+ body:[
+  ["세 모델","본체인 Gemini Robotics 2는 시각·언어 입력을 모터 제어로 변환하는 VLA로, 전신 휴머노이드와 양팔 로봇을 모두 구동한다. Gemini Robotics ER 2는 임베디드 추론 모델로 인간과의 소통, 물리 세계 이해, 수 분 길이의 다단계 계획, 그리고 여러 로봇의 협업을 담당한다. On-Device 2는 로컬 실행에 최적화된 버전으로, 수 시간 분량 데이터로 완전히 새로운 embodiment에 적응한다고 밝혔다."],
+  ["실증","Apptronik Apollo 2에 SharpaWave 손 또는 Inspire 손을 붙인 구성과, Franka Duo에 Robotiq 그리퍼를 붙인 구성을 동일 체크포인트로 구동한 결과를 공개했다. 예시 지시는 물뿌리개를 아래 선반 초록 통에 넣으라는 것으로, 로봇이 방을 가로질러 걸어가 물체를 집어 옮긴다."],
+  ["공개된 한계","DeepMind 자신의 보고에 따르면 전신 과제와 그리퍼 기반 정밀 조작에서는 중간에서 높은 성공률을 얻었지만, 다지 손 기반 정밀 조작은 여전히 어렵다. 이 진술은 이 위키의 미해결 문제 문서에서 근거로 사용된다."],
+  ["접근성","전신 모델과 온디바이스 모델은 조기 접근 파트너에게만 제공되며, ER 2만 Google AI Studio와 제한적 프리뷰로 열려 있다. 논문 형태의 상세 평가는 공개되지 않았다."]],
+ see:["groot-n2","pi07","open-problems"]},
+
+{s:"vitar",t:"vla",n:"ViTaR",full:"ViTaR: Visuo-Tactile Residual Adaptation for Foundation VLA Manipulation",org:"—",d:"2026-08",aid:"arXiv:2608.15816",venue:"arXiv 프리프린트",
+ lead:"동결된 파운데이션 VLA 위에 시각-촉각 잔차를 학습해 접촉 과제 성능을 끌어올린다. UniVTAC 벤치마크 7개 접촉 과제 평균 61.3%로, 동결 OpenVLA-OFT 기준 대비 30.6퍼센트포인트 개선을 보고했다.",
+ see:["openvla-oft","tafvla","ftp1"]},
+
+/* ───────── RFM · World Model ───────── */
+{s:"gr2",t:"rfm",n:"GR-2",full:"GR-2: A Generative Video-Language-Action Model with Web-Scale Knowledge",org:"ByteDance Research",d:"2024-10",aid:"arXiv:2410.06158",venue:"arXiv 프리프린트",
+ lead:"웹 규모 영상 지식을 활용하는 생성형 video-language-action 모델. 이후 world action model 계열의 선행 연구로 인용된다.",
+ see:["dreamzero","lapa"]},
+
+{s:"lapa",t:"rfm",n:"LAPA",full:"Latent Action Pretraining from Videos",org:"KAIST · Washington 외",d:"2024-10",aid:"arXiv:2410.11758",venue:"ICLR 2025",key:1,
+ lead:"액션 라벨이 없는 영상에서 잠재 액션을 추출해 정책을 사전학습하는 방법. latent action 계열의 출발점으로 널리 인용된다.",
+ body:[
+  ["아이디어","연속한 두 상태로부터 잠재 액션을 추론하는 인코더를 학습하고, 세계 모델이 그 잠재 액션으로 다음 상태를 예측하도록 최적화한다. 실제 액션 라벨 없이도 자기지도 방식으로 정책 학습의 기반을 만들 수 있다는 것이 핵심이다."],
+  ["계승","[[agibot-go1]]의 latent action planner, CoMo, Being-H0.7 등이 같은 착상을 각각 다르게 구현한다. 잠재 표현이 실제 로봇 액션 공간과 어긋난다는 문제는 소량의 라벨 데이터로 정렬하는 방식으로 다뤄진다."]],
+ see:["agibot-go1","dreamzero","vjepa2"]},
+
+{s:"uniact",t:"rfm",n:"UniAct",full:"Universal Actions for Enhanced Embodied Foundation Models",org:"—",d:"2025-03",aid:"CVPR 2025",venue:"CVPR 2025",
+ lead:"코드북 기반의 범용 원자 액션을 학습한 뒤 로봇별 디코더로 풀어내는 방식. 새 로봇 적응에 필요한 데이터와 노력을 크게 줄였지만, 저자들 스스로 진정한 zero-shot 일반화에는 미달한다고 평가한다.",
+ see:["cross-hand","open-problems"]},
+
+{s:"comov",t:"rfm",n:"CoMo",full:"CoMo: Learning Continuous Latent Motion from Internet Videos",org:"—",d:"2025-05",aid:"arXiv:2505.17006",venue:"arXiv 프리프린트",
+ lead:"인터넷 영상에서 연속 잠재 모션을 학습해 확장 가능한 로봇 학습에 활용한다.",
+ see:["lapa"]},
+
+{s:"vjepa2",t:"rfm",n:"V-JEPA 2",full:"V-JEPA 2: Self-Supervised Video Models Enable Understanding, Prediction and Planning",org:"Meta AI",d:"2025-06",aid:"arXiv:2506.09985",venue:"arXiv 프리프린트",key:1,
+ lead:"픽셀 재구성 대신 잠재 임베딩 예측을 학습 목표로 삼는 월드 모델 계열. 무관한 시각 디테일을 추상화해 장기 예측 효율을 확보한다는 점에서 생성형 월드 모델과 대비되는 노선이다.",
+ body:[
+  ["두 노선의 대비","생성형 월드 모델은 상태와 액션으로부터 다음 상태를 직접 생성하고, 임베딩 예측 계열은 미래 프레임의 잠재 표현만 예측한다. 후자는 픽셀 단위 재구성을 우회하므로 로봇처럼 정확한 픽셀보다 고수준 상태 변화가 중요한 영역에 적합하다는 것이 지지 논거다."]],
+ see:["dreamzero","lapa","open-challenges"]},
+
+{s:"being-h05",t:"rfm",n:"Being-H0.5",full:"Being-H0.5: Scaling Human-centric Robot Learning for Cross-embodiment Generalization",org:"—",d:"2026-01",aid:"arXiv:2601.12993",venue:"arXiv 프리프린트",
+ lead:"인간 중심 데이터를 확장해 cross-embodiment 일반화를 노리는 계열. 후속 [[being-h07]]로 이어진다.",
+ see:["being-h07","egoscale"]},
+
+{s:"dreamzero",t:"rfm",n:"DreamZero",full:"World Action Models are Zero-shot Policies",org:"NVIDIA GEAR",d:"2026-02",aid:"arXiv:2602.15922",venue:"arXiv 프리프린트",key:1,
+ lead:"영상 확산 백본 위에 구축된 14B 규모의 world action model. 미래 세계 상태와 액션을 동시에 예측하며, VLA가 의미 일반화에는 강하지만 미지 환경의 물리적 동작 일반화에는 약하다는 진단에서 출발한다.",
+ body:[
+  ["문제 설정","VLA는 전문가 데모의 분포를 넘어서는 과제나 새 환경에 적응하기 어렵고, 그러려면 과제별·환경별 액션 데이터를 대규모로 수집해야 한다. 저자들은 영상을 세계가 어떻게 변하는지에 대한 밀집 표현으로 보고, 영상과 액션을 함께 모델링하면 반복적 데모 없이도 다양한 스킬을 이질적 로봇 데이터에서 학습할 수 있다고 주장한다."],
+  ["구성","Wan2.1-I2V-14B-480P 이미지-투-비디오 확산 백본과 umt5-xxl 토크나이저 위에 구축했다. 학습 데이터로는 DROID를 LeRobot 포맷으로 변환한 세트를 공개했다."],
+  ["보고된 결과","미지 과제 평균 진행률 39.5%, 일반화 2배 이상 개선. 다른 로봇이나 사람의 영상만 10~20분 주었을 때 미지 과제 성능이 42% 이상 상대 개선. 30분 분량 55개 궤적의 play 데이터로 새 양팔 로봇 YAM에 적응하면서도 zero-shot 일반화를 유지했다."],
+  ["지연 최적화","비동기 폐루프 실행, CFG 병렬화, DiT 캐싱, Torch Compile과 CUDA Graphs, NVFP4 사후 양자화, cuDNN 어텐션 백엔드를 합쳐 5.7초를 150ms로 38배 단축해 7Hz 폐루프 제어를 달성했다고 기술한다. 정밀 접촉 과제 기준으로 7Hz는 여전히 낮은 편이라는 점을 함께 봐야 한다."],
+  ["저자들의 유보","인간 영상이 액션 주석 없이 다양한 스킬을 습득하게 할 잠재적 스케일링 경로를 열지만, 전이 메커니즘 강화에 대한 추가 연구가 필요하다고 명시했다."]],
+ see:["groot-n2","vjepa2","humanscale","open-problems"]},
+
+{s:"mem",t:"rfm",n:"MEM",full:"MEM: Multi-scale Embodied Memory for Vision Language Action Models",org:"Physical Intelligence",d:"2026-03",aid:"arXiv:2603.03596",venue:"arXiv 프리프린트",
+ lead:"VLA에 다중 스케일 임베디드 메모리를 부여하는 연구. [[pi07]]의 참고문헌에 포함된다.",
+ see:["pi07"]},
+
+{s:"cross-hand",t:"rfm",n:"Cross-Hand Latent Representation",full:"Cross-Hand Latent Representation for Vision-Language-Action Models",org:"UC San Diego 외",d:"2026-03",aid:"arXiv:2603.10158",venue:"arXiv 프리프린트",
+ lead:"손 형상이 다른 embodiment 사이에서 공유 가능한 잠재 표현을 학습한다. cross-embodiment 액션 이질성 문제의 한 갈래다.",
+ see:["uniact","open-problems"]},
+
+{s:"being-h07",t:"rfm",n:"Being-H0.7",full:"Being-H0.7: A Latent World-Action Model from Egocentric Videos",org:"—",d:"2026-05",aid:"arXiv:2605.00078",venue:"arXiv 프리프린트",
+ lead:"1인칭 영상에서 학습한 잠재 world-action 모델.",
+ see:["being-h05","dreamzero","egoscale"]},
+
+{s:"wh0",t:"rfm",n:"Wh0",full:"Wh0: Generative World Models as Scalable Sources of Egocentric Human Hand Manipulation Data",org:"—",d:"2026-06",aid:"arXiv:2606.22136",venue:"arXiv 프리프린트",
+ lead:"생성형 월드 모델을 1인칭 손 조작 데이터의 확장 가능한 공급원으로 사용한다. 데이터 병목을 연산 문제로 바꾸려는 시도의 한 형태다.",
+ see:["dreamzero","ego2robot"]},
+
+{s:"fastwam",t:"rfm",n:"Fast-WAM",full:"Fast-WAM: Do World Action Models Need Test-time Future Imagination?",org:"—",d:"2026-06",aid:"2026 프리프린트",venue:"프리프린트",
+ lead:"추론 시 영상 생성을 건너뛰는 표현 전용 world action model. DreamZero식 접근의 연산 비용을 피하려는 대안이다.",
+ body:[["연산 비용 맥락","NVIDIA의 기술 블로그에 따르면 DreamZero식 액션 튜닝이 약 9 ZFLOPs, 전체 영상 사전학습과 적응을 합치면 50 ZFLOPs를 넘길 수 있다. Fast-WAM은 이 비용 구조를 바꾸려는 시도다."]],
+ see:["dreamzero","groot-n2"]},
+
+{s:"groot-n2",t:"rfm",n:"GR00T N2",full:"NVIDIA Isaac GR00T N2",org:"NVIDIA",d:"2026-06",aid:"릴리스 (논문 미공개)",venue:"GTC 키노트",key:1,
+ lead:"[[dreamzero]] 연구에 기반한 차세대 로봇 파운데이션 모델. 새로운 world action model 아키텍처를 채택했다고 발표되었다.",
+ body:[
+  ["발표 내용","새 환경의 새 과제 성공률이 기존 주요 VLA 대비 2배 이상이며, generalist 로봇 정책 부문에서 MolmoSpaces와 [[roboarena]] 1위라고 주장한다. 연말 공개를 예고한 상태다."],
+  ["평가 시 유의점","논문이 아니라 GTC 키노트와 보도자료 기반의 주장이며 독립 재현이 없다. 같은 계열의 상용 라이선스 모델 GR00T N1.7이 조기 접근으로 제공되고 있다."]],
+ see:["dreamzero","groot-n1","roboarena"]},
+
+/* ───────── 궤적 최적화 ───────── */
+{s:"curobo",t:"traj",n:"cuRobo",full:"cuRobo: Parallelized Collision-Free Minimum-Jerk Robot Motion Generation",org:"NVIDIA",d:"2023-10",aid:"arXiv:2310.17274",venue:"ICRA 2023",key:1,
+ lead:"GPU 병렬화로 충돌 없는 최소 저크 궤적 최적화를 실시간에 푸는 라이브러리. 다수의 시드를 동시에 최적화하는 구조가 핵심이다.",
+ body:[
+  ["방법","L-BFGS 스텝 방향 추정에 병렬 잡음 라인서치를 결합하고, 입자 기반 최적화 솔버를 함께 돌린다. 각 시드는 독립적인 후보 궤적이며 GPU 스레드 전체를 써서 동시에 최적화된다."],
+  ["보고된 성능","어려운 모션 생성 문제를 평균 50ms 내에 해결해 기존 궤적 최적화 대비 60배 빠르다. 병렬 기하 플래너는 20ms, 충돌 없는 IK 솔버는 초당 7000~9000 질의 이상을 처리한다. Jetson AGX Orin 같은 저전력 기기에서도 수십 밀리초대 지연을 유지한다."],
+  ["후속","[[curobov2]]가 B-스플라인 파라미터화와 GPU 네이티브 인식 파이프라인으로 전면 재작성되었고, [[cutamp]]가 이 위에서 TAMP를 병렬화한다."]],
+ see:["curobov2","cutamp","mpd"]},
+
+{s:"cad-traj",t:"traj",n:"Constraint-Aware Diffusion",full:"Constraint-Aware Diffusion Models for Trajectory Optimization",org:"Princeton 외",d:"2024-06",aid:"arXiv:2406.00990",venue:"DDDAS 2024",
+ lead:"확산 과정의 잡음 데이터를 고려하는 하이브리드 손실을 도입해 제약 위반을 줄인 궤적 생성. 테이블탑 조작과 2차량 reach-avoid 문제로 검증했다. 저자들은 제약 함수의 수치 적분 탓에 학습 시간이 길다는 것을 한계로 든다.",
+ see:["mpd","mbd"]},
+
+{s:"cutamp",t:"traj",n:"cuTAMP",full:"Differentiable GPU-Parallelized Task and Motion Planning",org:"MIT",d:"2024-11",aid:"arXiv:2411.11833",venue:"arXiv 프리프린트",key:1,
+ lead:"로봇 매니퓰레이터를 위한 최초의 GPU 병렬 TAMP 알고리즘. 조합적 샘플링으로 초기 계획 파라미터 입자 집합을 만들고, 공동 최적화로 계획 제약을 만족시키면서 비용을 낮춘다.",
+ body:[
+  ["결과","입자 수를 늘릴수록, 특히 단일 입자를 넘어서는 순간부터 계획 시간과 해의 품질이 함께 개선된다는 것을 보였다. 여러 embodiment에 배치해 인식에서 행동까지를 초 단위로 수행했다."]],
+ see:["curobo","mpd"]},
+
+{s:"mbd",t:"traj",n:"Model-Based Diffusion",full:"Model-Based Diffusion for Trajectory Optimization",org:"CMU 외",d:"2024-12",aid:"NeurIPS 2024",venue:"NeurIPS 2024",
+ lead:"확산 모델을 학습된 사전이 아니라 최적화 솔버 자체로 사용한다. Langevin 기반 MCMC의 전역 최적화 성질을 궤적 최적화에 접목한 계열이다.",
+ see:["mpd","cad-traj"]},
+
+{s:"mpd",t:"traj",n:"MPD",full:"Motion Planning Diffusion: Learning and Adapting Robot Motion Planning with Diffusion Models",org:"TU Darmstadt · DFKI",d:"2024-12",aid:"arXiv:2412.19948",venue:"arXiv 프리프린트",key:1,
+ lead:"확산 모델로 궤적 분포 사전을 학습하고, planning-as-inference 틀에서 비용 유도 사후 샘플링으로 학습된 사전과 과제별 목적을 결합한다.",
+ body:[
+  ["문제의식","최적화 기반 플래너의 성능은 초기해에 크게 좌우된다. 통상 샘플링 기반 플래너로 초기해를 얻지만, 고차원 복잡 장면에서 느리고 결과가 비평활하다. 이전에 푼 문제들의 해 분포를 학습해 사전으로 쓰자는 것이 이 논문의 제안이다."],
+  ["특성","사전이 갖춰야 할 성질로 거의 충돌이 없을 것, 복잡한 궤적을 표현할 것, 다봉성을 인코딩할 것을 든다. 미분 가능 비용 함수로 새 제약을 쉽게 붙일 수 있다는 것이 실용적 장점이다."]],
+ see:["flowmp","fsdmp","curobo","mbd"]},
+
+{s:"flowmp",t:"traj",n:"FlowMP",full:"FlowMP: Learning Motion Fields for Robot Planning with Conditional Flow Matching",org:"—",d:"2025-03",aid:"arXiv:2503.06135",venue:"arXiv 프리프린트",
+ lead:"조건부 flow matching으로 반복 디노이징 없이 소수 스텝에 궤적을 생성한다. 확산 기반 플래너가 1차 동역학에 치우쳐 평활한 가속도 프로파일을 놓친다는 점을 문제로 지적한다.",
+ see:["mpd","fsdmp"]},
+
+{s:"dpo-seq",t:"traj",n:"Differentiable Particle Optimization",full:"Differentiable Particle Optimization for Fast Sequential Manipulation",org:"—",d:"2025-10",aid:"arXiv:2510.07674",venue:"arXiv 프리프린트",
+ lead:"JAX로 커널을 컴파일해 순차 조작 계획을 병렬 입자 최적화로 푼다. 기하 모션 계획이 마이크로초 영역에 도달한 흐름의 연장선이다.",
+ see:["cutamp","curobo"]},
+
+{s:"curobov2",t:"traj",n:"cuRoboV2",full:"cuRoboV2: Dynamics-Aware Motion Generation with Depth-Fused Distance Fields for High-DoF Robots",org:"NVIDIA",d:"2026-03",aid:"arXiv:2603.05493",venue:"arXiv 프리프린트",key:1,
+ lead:"cuRobo의 전면 재작성. 빠른 플래너가 물리적으로 실행 불가능한 궤적을 내놓고, 반응형 제어기가 고품질 인식을 다루지 못하며, 기존 솔버가 고자유도 시스템에서 실패한다는 세 갈래 파편화를 하나로 묶는 것을 목표로 한다.",
+ body:[
+  ["세 가지 변경","첫째, B-스플라인 궤적 파라미터화로 평활성과 토크 한계를 강제한다. 둘째, GPU 네이티브 TSDF/ESDF 인식 파이프라인이 희소 블록 내부만 다루던 기존 방식과 달리 작업공간 전체를 덮는 조밀 부호거리장을 최대 10배 빠르게 생성한다. 셋째, 위상 인식 기구학, 미분 가능 역동역학, map-reduce 자기충돌 검사로 고자유도 전신 계산을 확장한다."],
+  ["측정값","계획 시간 48ms로 cuRobo의 36ms보다 다소 늘었으나 실행 가능성이 보장된다. 75퍼센타일 에너지 소비는 106J로 cuRobo 116J, VAMP 131~160J보다 낮다. 페이로드 문제 2600개 중 2591개를 풀어 cuRobo+NewtonDyn의 2525개를 앞섰다."],
+  ["해석","단순한 속도 개선이 아니라, 시간축마다 독립적으로 파라미터화하는 방식이 불연속적 가속도·저크를 만들어 실행 불가능성의 원인이 되어 왔고 스플라인 표현이 최적화 지형 자체를 더 잘 조건화한다는 것이 저자들의 주장이다."],
+  ["배포","2026년 4월 Apache 2.0 라이선스로 공개되었다. API가 v1과 호환되지 않는다."]],
+ see:["curobo","cutamp","open-problems"]},
+
+{s:"fsdmp",t:"traj",n:"FSD-MP",full:"Function-Space Diffusion for Motion Planning",org:"—",d:"2026-07",aid:"arXiv:2607.02977",venue:"arXiv 프리프린트",
+ lead:"궤적을 고정 길이 웨이포인트 열이 아니라 연속 함수로 보고 함수 공간에서 확산해, 이산화 해상도에 불변인 궤적 생성을 달성하려는 연구.",
+ body:[
+  ["방법","스펙트럼 영역에서 Matérn형 공분산을 갖는 가우시안 잡음으로 모드별 forward process를 정의하고, 역과정을 경계 호환 이산 사인 변환 기반 Fourier Neural Operator로 파라미터화해 시작·목표 제약을 해상도에 걸쳐 보존한다."]],
+ see:["mpd","flowmp"]},
+
+/* ───────── MPC ───────── */
+{s:"cimpc-quad",t:"mpc",n:"CI-MPC (사족)",full:"Contact-Implicit MPC: Controlling Diverse Quadruped Motions Without Pre-Planned Contact Modes",org:"KAIST",d:"2023-12",aid:"arXiv:2312.08961",venue:"IJRR",
+ lead:"사전에 계획된 접촉 모드나 궤적 없이 다양한 사족 동작을 제어한다. 접촉 암시적 제어의 실시간성을 보인 초기 사례다.",
+ see:["fast-cimpc","cimpc-global"]},
+
+{s:"fast-cimpc",t:"mpc",n:"Fast Contact-Implicit MPC",full:"Fast Contact-Implicit Model Predictive Control",org:"Stanford · CMU",d:"2024-04",aid:"IEEE T-RO 40:1617",venue:"IEEE T-RO 2024",key:1,
+ lead:"접촉 암시적 MPC의 실시간 계산 기반을 닦은 연구. 이후 다수의 CI-MPC 논문이 성능 비교 기준으로 삼는다.",
+ body:[
+  ["보고된 계산 성능 (계열 전체)","24자유도 휴머노이드 50Hz, 양팔 100Hz(Kurtz 등의 역동역학 궤적 최적화), 평면 밀기 루프당 1초 이하 수준이 문헌에 보고되어 있다. 해석적 1차원 사영, 병렬 MIQP 해석, 합의 정식화, 맞춤 신뢰영역·도그레그 솔버가 이러한 성과에 기여했다."]],
+ see:["cimpc-global","cimpc-quad","push-anything"]},
+
+{s:"sampling-mpc-phys",t:"mpc",n:"Sampling-based MPC with parallel physics",full:"Sampling-based Model Predictive Control Leveraging Parallelizable Physics Simulations",org:"TU Delft",d:"2025-01",aid:"2025 프리프린트",venue:"프리프린트",
+ lead:"GPU 병렬 시뮬레이터를 동역학 모델로 삼는 MPPI 계열. 시뮬레이터가 모델을 암묵적으로 정의하므로 다양한 물체와 로봇으로 쉽게 확장된다.",
+ see:["parallel-smpc-real","feedback-mppi"]},
+
+{s:"cimpc-global",t:"mpc",n:"전역 근사 CI-MPC",full:"Approximating Global Contact-Implicit MPC via Sampling and Local Complementarity",org:"UPenn",d:"2025-05",aid:"arXiv:2505.13350",venue:"IEEE RA-L 2026",key:1,
+ lead:"국소 상보성 기반 제어와 저차원 전역 샘플링을 결합해, 접촉 암시적 제어가 갇히던 국소 최소점을 벗어나려는 연구.",
+ body:[
+  ["문제","범용 정밀 조작을 하려면 접촉 풍부 행동을 실시간에 고안하고 실행해야 하는데, 가능한 접촉 시퀀스의 수가 지수적이라 기존 모델 기반 제어기는 실시간 전역 최적화를 할 수 없다. 그래서 진전은 단순화된, 그러나 여전히 하이브리드인 모델로 국소 근사를 취하는 방향으로 이뤄져 왔고, 그 결과 제어기가 가까운 접촉만 활용할 수 있어 접촉 공간 탐색에 외부 개입이 필요했다."],
+  ["방법","매 제어 루프마다 접촉 없는 단계가 접촉 풍부 단계에 선행한다고 본다. 접촉 없는 단계가 이동할 수 있는 엔드이펙터 위치들을 병렬로 샘플링하고, 각 샘플 위치 근방의 접촉 MPC가 예측하는 비용을 비교한다. 저차원 전역 탐색과 고충실도 국소 최적화를 분업시키는 구조다."],
+  ["효과","다물체 조작처럼 비볼록한 과제에서 국소 최소점을 벗어나는 경로를 제공한다."]],
+ see:["fast-cimpc","push-anything","cascaded-contact","open-problems"]},
+
+{s:"push-anything",t:"mpc",n:"Push Anything",full:"Push Anything: Single- and Multi-object Pushing from First Sight with Contact-Implicit MPC",org:"UPenn",d:"2025-10",aid:"arXiv:2510.19974",venue:"arXiv 프리프린트",
+ lead:"첫 관측만으로 단일·다물체 밀기를 수행하는 CI-MPC 시스템.",
+ see:["cimpc-global"]},
+
+{s:"spider",t:"mpc",n:"SPIDER",full:"SPIDER: Scalable Physics-Informed Dexterous Retargeting",org:"Meta · UC Berkeley 외",d:"2025-11",aid:"arXiv:2511.09484",venue:"arXiv 프리프린트",
+ lead:"물리 정보를 반영한 확장 가능한 dexterous 리타게팅. 인간 손 동작을 로봇 손으로 옮기는 과정에 물리 제약을 통합한다.",
+ see:["egoscale","cimpc-global"]},
+
+{s:"where-to-touch",t:"mpc",n:"Where to Touch, How to Contact",full:"Where to Touch, How to Contact: Hierarchical RL-MPC for Geometry-aware Long-horizon Dexterous Manipulation",org:"UPenn 외",d:"2026-01",aid:"arXiv:2601.10930",venue:"arXiv 프리프린트",
+ lead:"기하 인식 장기 정밀 조작을 위한 계층적 RL-MPC. 상위 강화학습이 어디를 접촉할지를 결정하고, 하위 MPC가 어떻게 접촉할지를 담당한다.",
+ see:["cimpc-global","open-problems"]},
+
+{s:"zeroshot-dex",t:"mpc",n:"Zero-Shot Sim-to-Real 다지 파지",full:"Closing the Reality Gap: Zero-Shot Sim-to-Real Deployment for Dexterous Force-Based Grasping",org:"UCL 외",d:"2026-01",aid:"arXiv:2601.02778",venue:"arXiv 프리프린트",
+ lead:"조밀 촉각 피드백과 관절 토크 감지로 물리적 상호작용을 명시적으로 조절하는 sim-to-real 강화학습 프레임워크. 시뮬레이션만으로 학습한 정책을 5지 손에 zero-shot 전개했다.",
+ body:[
+  ["방법과 결과","비대칭 actor-critic PPO로 학습하며, 촉각 시뮬레이션 규모화, 전류-토크 캘리브레이션, 액추에이터 동역학 불확실성 모델링을 결합한다. 지령 기반 파지력 추종과 손 안 물체 재배향 두 가지를 로봇 상 미세조정 없이 수행했으며, 다지 손에서 제어 가능한 파지를 시뮬레이션만으로 학습해 zero-shot 전개한 최초 사례라고 주장한다."]],
+ see:["ftp1","open-problems"]},
+
+{s:"feedback-mppi",t:"mpc",n:"Feedback-MPPI",full:"Feedback-MPPI: Fast Sampling-Based MPC via Rollout Differentiation",org:"UCL · IIT",d:"2026-01",aid:"IEEE RA-L 11(1)",venue:"IEEE RA-L 2026",
+ lead:"롤아웃 미분을 통해 저수준 제어기 없이 빠른 샘플링 기반 MPC를 구성한다.",
+ see:["sampling-mpc-phys","parallel-smpc-real"]},
+
+{s:"cascaded-contact",t:"mpc",n:"Cascaded Contact Selection",full:"Simultaneous Contact Selection and Planning for Contact-Rich Manipulation with Cascaded Optimization",org:"—",d:"2026-05",aid:"arXiv:2605.27972",venue:"arXiv 프리프린트",
+ lead:"접촉점 선택과 계획을 계단식 최적화로 동시에 푼다. STOCS 계열의 접촉 선택 아이디어를 계승한다.",
+ see:["cimpc-global","fast-cimpc"]},
+
+{s:"parallel-smpc-real",t:"mpc",n:"대규모 병렬 샘플링 MPC 실기 배치",full:"Real-World Deployment of Massively Parallel Sampling-Based MPC for Contact-Rich Manipulation",org:"TU Darmstadt · DFKI",d:"2026-06",aid:"arXiv:2606.20712",venue:"arXiv 프리프린트",key:1,
+ lead:"샘플링 기반 MPC를 실제 로봇에 배치하고 실패 원인을 구체적으로 분석한 연구. 기존 연구 대부분이 단순화된 동역학에 의존하거나 시뮬레이션에 머물렀다는 지적에서 출발한다.",
+ body:[
+  ["구성","JAX 대규모 병렬화와 고충실도 MuJoCo MJX 시뮬레이터를 결합한 MPC 프레임워크를 Franka Research 3에 배치하고, real-to-sim-to-real 파이프라인으로 Push-T 과제를 수행했다."],
+  ["결과","구조적 전역 샘플링을 쓰는 Model Tensor Planning 변형이 모드 전환이 필요한 과제에서 CEM, MPPI, PS 같은 단봉 기준선을 시뮬레이션과 실기 양쪽에서 앞섰다."],
+  ["도메인 랜덤화 실측","MPC 샘플 예산 안에서 온라인 도메인 랜덤화를 평가한 결과, 접촉 개시 파라미터는 해석 가능한 적응 신호를 주지만 전역 물리 파라미터는 통상적 재계획 주파수에서 신뢰성 있게 활용하기엔 피드백이 너무 약했다."],
+  ["저자들이 정리한 난점","접촉 민감성, 빠듯한 연산 예산, 실시간에서 유의미한 도메인 랜덤화 신호를 얻기 어려움. 이 세 가지는 이 위키의 미해결 문제 문서에서 근거로 사용된다."]],
+ see:["sampling-mpc-phys","feedback-mppi","open-problems"]},
+
+/* ───────── 데이터 · 평가 ───────── */
+{s:"libero",t:"data",n:"LIBERO",full:"LIBERO: Benchmarking Knowledge Transfer for Lifelong Robot Learning",org:"UT Austin",d:"2023-06",aid:"arXiv:2306.03310",venue:"NeurIPS 2023",
+ lead:"평생학습에서의 지식 전이를 평가하는 시뮬레이션 벤치마크. 여전히 VLA 논문의 표준 비교축이지만, 실기 성능과의 상관 문제가 반복 지적된다.",
+ see:["simplerenv","vla-arena"]},
+
+{s:"oxe",t:"data",n:"Open X-Embodiment",full:"Open X-Embodiment: Robotic Learning Datasets and RT-X Models",org:"다기관 협업",d:"2023-10",aid:"arXiv:2310.08864",venue:"ICRA 2024",key:1,
+ lead:"약 70개의 소규모 데이터셋을 통합해 100만 개 이상의 에피소드를 모은 데이터셋. 다양한 로봇이 다양한 물체와 장면에서 수행한 과제를 담고 있다.",
+ body:[
+  ["한계","이 규모로 학습해도 VLA는 분포 밖 환경과 로봇 설정에 취약해 추가 에피소드 수집이 필요하다는 것이 [[open-challenges]]의 진단이다. 수집 주체의 인지적 편차, 카메라 위치·각도 차이, embodiment 차이에서 오는 분산과 잡음도 문제로 지적된다."]],
+ see:["droid","agibot-go1","open-challenges"]},
+
+{s:"droid",t:"data",n:"DROID",full:"DROID: A Large-Scale In-the-Wild Robot Manipulation Dataset",org:"다기관 협업",d:"2024-03",aid:"arXiv:2403.12945",venue:"RSS 2024",key:1,
+ lead:"실환경에서 수집한 대규모 조작 데이터셋. [[roboarena]] 평가의 기반 플랫폼이며, [[dreamzero]]의 학습 데이터로도 쓰였다.",
+ see:["roboarena","oxe","dreamzero"]},
+
+{s:"simplerenv",t:"data",n:"SimplerEnv",full:"Evaluating Real-World Robot Manipulation Policies in Simulation",org:"UC San Diego 외",d:"2024-05",aid:"arXiv:2405.05941",venue:"CoRL 2024",
+ lead:"이미지 인페인팅과 시뮬레이티드 어닐링으로 sim-real 분포 차이를 줄인 평가 환경. 배경, 조명, 방해물, 질감, 카메라 자세에 분포 변화를 준다.",
+ body:[["남은 문제","[[open-challenges]]는 반사, 렌즈 플레어, 물·먼지·잔해로 인한 카메라 잡음 같은 넓은 범위의 아티팩트가 여전히 평가에 반영되지 않는다고 지적한다."]],
+ see:["libero","vla-arena","robotarena-inf"]},
+
+{s:"agibot-go1",t:"data",n:"AgiBot World / GO-1",full:"AgiBot World Colosseo: A Large-scale Manipulation Platform",org:"AgiBot · OpenDriveLab",d:"2025-03",aid:"arXiv:2503.06669",venue:"IROS 2025",key:1,
+ lead:"100대의 양팔 휴머노이드로 5개 배치 시나리오에서 217개 과제, 100만 개 이상의 궤적을 수집한 플랫폼. 잠재 액션 플래너를 쓰는 generalist 정책 GO-1을 함께 공개했다.",
+ body:[
+  ["데이터","표준화된 수집 파이프라인과 human-in-the-loop 검증으로 품질을 관리했고, 그리퍼에서 다지 손과 시각-촉각 센서까지 확장 가능하도록 설계했다."],
+  ["GO-1","VLM, 잠재 플래너, action expert를 결합한다. 추론 시 k개의 잠재 액션 토큰을 먼저 예측하고 이를 조건으로 디노이징해 최종 제어 신호를 만든다."],
+  ["보고된 결과","이 데이터셋으로 사전학습한 정책이 [[oxe]] 사전학습 대비 in-domain 0.47에서 0.77, 분포 밖 0.38에서 0.67로 완료 점수가 올랐다. 복잡한 과제에서 60% 이상 성공률로 [[rdt1b]] 대비 32% 개선을 보고했다."]],
+ see:["oxe","lapa","rdt1b"]},
+
+{s:"roboarena",t:"data",n:"RoboArena",full:"RoboArena: Distributed Real-World Evaluation of Generalist Robot Policies",org:"UC Berkeley · Stanford 외",d:"2025-06",aid:"arXiv:2506.18123",venue:"ICLR 2026",key:1,
+ lead:"고정된 과제·환경·장소를 표준화하는 대신, 분산된 평가자 네트워크에 평가를 크라우드소싱하는 접근. 평가자가 과제와 환경을 자유롭게 고른다.",
+ body:[
+  ["문제의식","전통적 로봇 벤치마킹은 공정성을 위해 조명, 물체, 위치를 엄격히 표준화하지만, 그 경직성이 오히려 일반화 측정을 막는다. 반면 중앙집중식 로봇 챌린지는 generalist 정책을 넓은 과제 범위에서 평가하는 데 확장되지 않는다."],
+  ["방법","이중맹검 비교와 랭킹 체계로 분산 평가 결과를 종합한다. [[droid]] 플랫폼을 기반으로 하며, 평가 대상은 DROID로 파인튜닝된 공개 generalist 정책들이다."],
+  ["지적된 한계","[[robotarena-inf]]는 RoboArena가 DROID 환경, 다섯 개 과제, 세 개 정적 실환경 장면 수준에 머문다는 점을 지적하며 더 확장 가능한 평가 틀을 제안한다."]],
+ see:["robotarena-inf","vla-arena","droid"]},
+
+{s:"vla-arena",t:"data",n:"VLA-Arena",full:"VLA-Arena: An Open-Source Framework for Benchmarking Vision-Language-Action Models",org:"—",d:"2025-12",aid:"arXiv:2512.22539",venue:"arXiv 프리프린트",key:1,
+ lead:"난이도 축(L0~L2)과 섭동 진단 축(언어 W0~W4, 시각 V0~V4)을 분리해 일반화를 성분별로 측정하는 벤치마크.",
+ body:[
+  ["설계","L0~L2는 과제 난이도와 조합성을 계단식으로 올리고, 언어·시각 섭동은 어느 과제에나 적용 가능한 진단 프로브로 작동해 견고한 그라운딩과 표면적 패턴 매칭을 구분한다."],
+  ["실측 결론","자기회귀 계열과 확산 계열을 아우른 SOTA VLA 전반에서 네 가지 공통 한계가 확인되었다. 일반화보다 암기, 표면적 시각 인식, 안전 제약 무시, 장기 스킬 조합 실패. 모든 모델이 L0에 강하게 과적합되어 L1·L2 조합 과제와 섭동 조건에서 성공률이 급락했다."],
+  ["부수 발견","L0~L2 사이에서 모델 순위 역전이 발생해, 각 레벨이 중복되지 않는 정보를 준다는 것이 확인되었다. 단일 벤치마크 점수로 정책의 일반성을 주장하기 어렵다는 근거다."]],
+ see:["roboarena","robotarena-inf","open-problems"]},
+
+{s:"egodex",t:"data",n:"EgoDex",full:"EgoDex: Learning Dexterous Manipulation from Large-Scale Egocentric Video",org:"Apple",d:"2026-01",aid:"ICLR 2026",venue:"ICLR 2026",
+ lead:"대규모 1인칭 영상에서 정밀 조작을 학습하는 데이터셋과 방법.",
+ see:["egoscale","humanscale","egolive"]},
+
+{s:"egoscale",t:"data",n:"EgoScale",full:"EgoScale: Scaling Dexterous Manipulation with Diverse Egocentric Human Data",org:"—",d:"2026-02",aid:"arXiv:2602.16710",venue:"arXiv 프리프린트",key:1,
+ lead:"20,854시간 분량의 액션 라벨링된 1인칭 인간 영상으로 flow 기반 VLA를 사전학습했다. 선행 연구 대비 20배 이상 규모이며, 인간 데이터 규모와 검증 손실 사이의 로그-선형 스케일링 법칙을 보고했다.",
+ body:[
+  ["방법","손목 모션과 리타게팅된 다지 손 액션을 지도 신호로 삼아 사전학습하고, 정렬된 인간-로봇 play 데이터로 경량 미드트레이닝을 거쳐 로봇 감지·제어에 표현을 적응시킨 뒤 다운스트림 과제에 사후학습한다."],
+  ["결과","검증 손실이 실로봇 성능과 강하게 상관해, 대규모 인간 데이터가 예측 가능한 지도 신호원이 될 수 있음을 보였다. 22자유도 다지 손에서 무사전학습 기준 대비 평균 성공률 54% 개선, 자유도가 낮은 손으로도 전이되었다."]],
+ see:["humanscale","egodex","ego2robot"]},
+
+{s:"robotarena-inf",t:"data",n:"RobotArena ∞",full:"RobotArena ∞: Scalable Robot Benchmarking via Real-to-Sim Translation",org:"—",d:"2026-03",aid:"ICLR 2026",venue:"ICLR 2026",key:1,
+ lead:"수백 개 환경과 수천 건의 인간 선호로 세계 각지 연구실의 VLA를 평가한 대규모 벤치마크. 저자들은 이를 당시 가장 광범위한 로봇 평가라고 기술한다.",
+ body:[
+  ["실측 결론","VLA는 데이터셋 차이에 매우 민감해서 학습 분포 밖 환경에서 성능이 떨어진다. 현재 모델은 진정한 generalist가 아니라 학습 데이터에 표현된 환경에 특화된 것이라는 진술이 이 논문의 핵심이다."],
+  ["위치","[[roboarena]]의 범위 한계를 지적하며 real-to-sim 변환으로 지속 확장 가능한 평가 틀을 제안한다."]],
+ see:["roboarena","vla-arena","pi07"]},
+
+{s:"egolive",t:"data",n:"EgoLive",full:"EgoLive: A Large-Scale Egocentric Dataset from Real-World Human Tasks",org:"—",d:"2026-04",aid:"arXiv:2604.23570",venue:"arXiv 프리프린트",
+ lead:"실제 인간 작업에서 수집한 대규모 1인칭 데이터셋.",
+ see:["egodex","egoscale","humanscale"]},
+
+{s:"humanscale",t:"data",n:"HumanScale",full:"HumanScale: Egocentric Human Video Can Outperform Real-Robot Data for Embodied Pretraining",org:"—",d:"2026-06",aid:"arXiv:2606.20521",venue:"arXiv 프리프린트",key:1,
+ lead:"동일한 사전학습 데이터량 조건에서 1인칭 인간 영상이 원격조작 실로봇 궤적을 앞선다는 것을 보고한 통제 비교 연구.",
+ body:[
+  ["문제 설정","임베디드 파운데이션 모델은 LLM처럼 데이터 스케일링의 이득을 볼 것으로 기대되지만 데이터 병목이 훨씬 심하다. 원격조작 실로봇 궤적은 정확한 액션 지도와 embodiment 정합성 덕에 지배적 사전학습 소스로 남아 있으나, 수집 비용과 난이도, 낮은 행동·환경 다양성이 확장을 막는다."],
+  ["결과","세심한 필터링과 라벨링 파이프라인을 거친 1인칭 데이터로 사전학습하면 실로봇 액션 예측 검증 손실이 24% 낮고, in-distribution 성공률 52.5%, 분포 밖 성공률 90% 높았다. 100시간에서 5000시간 구간에서 로그-선형 법칙이 성립했고(seen R²=0.86, unseen R²=0.94) 아직 포화되지 않았다."],
+  ["저자 해석","우위의 원인을 데이터 다양성으로 귀속시킨다. 1인칭 부분집합이 폭넓은 커버리지로 큐레이션되어 있어 시간을 늘려도 중복 궤적이 반복되는 대신 더 넓은 물체·스킬·환경이 들어온다는 것이다."],
+  ["함께 볼 반론","업계 정리 글들은 인터넷 스케일이라는 표현이 실제 비용을 과소평가한다고 지적한다. 손이 프레임에 잘 들어오고 흔들림이 적은 고가치 영상은 계측 장비와 큐레이션을 요구한다."]],
+ see:["egoscale","egodex","ego2robot","open-problems"]},
+
+{s:"ego2robot",t:"data",n:"Ego2Robot",full:"Ego2Robot: Scalable Robot Data Synthesis from Egocentric Human Data",org:"—",d:"2026-08",aid:"arXiv:2608.02580",venue:"arXiv 프리프린트",
+ lead:"1인칭 인간 조작 영상을 액션 리타게팅, 로봇팔 시각 합성, 다단계 품질 큐레이션을 거쳐 로봇 학습 데이터로 변환하는 파이프라인.",
+ see:["egoscale","humanscale","wh0"]}
+];
+
+/* 미해결 문제 */
+const PROBS = [
+{h:"접촉과 힘 정보의 부재", tr:["vla","mpc"], ev:"measured",
+ b:["VLA는 이름 그대로 시각과 언어에 한정되어 있어, 삽입·조립·미끄러짐 감지처럼 카메라가 원리적으로 볼 수 없는 국소 상호작용을 요구하는 과제에서 구조적으로 실패한다.",
+    "2026년에 이 공백을 메우려는 논문이 폭발적으로 늘었다는 사실 자체가 문제의 크기를 보여준다. [[tafvla]], [[forcevla2]], [[vitar]], [[tacvla]], [[atvla]], [[craft]], [[ftp1]], [[tacforesight]]가 각각 다른 지점을 공략한다.",
+    "남아 있는 문제는 세 가지다. 이들 대부분이 특정 센서·특정 과제군에 묶여 있고, 촉각 센서 하드웨어의 이질성이 표준화되지 않았으며, 대규모 사전학습 코퍼스에 촉각·힘 채널이 아예 없다. [[gemini-robotics-2]]가 스스로 밝힌 다지 정밀 조작의 낮은 성공률도 같은 맥락에 있다."],
+ s:"2511.05936 §2.1 · 2601.20321 · 2608.15816 · 2606.13102 · Gemini Robotics 2 릴리스"},
+
+{h:"장기 과제와 조합 일반화", tr:["vla"], ev:"measured",
+ b:["학습된 스킬을 조합해 장기 과제를 구성하지 못한다. [[vla-arena]]에서 모든 모델이 L0에서 L1·L2 조합 과제로 넘어갈 때 급격히 무너졌다.",
+    "변형체 조작 서베이도 서브스킬의 조합 일반화를 장기 과제의 핵심 난제로 지목하며, 다지 손이나 다중 도구를 요구하는 장기 과제는 거의 손대지 못한 영역이라고 평가한다.",
+    "도구 사용은 별도로 어렵다. 커피를 만들려면 컵과 스푼을 식별해 써야 하는 식의 일상적 요구조차 VLA가 다루지 못한다는 것이 [[open-challenges]]의 진단이다."],
+ s:"2512.22539 · 2511.05936 §2.2 · 2312.10419"},
+
+{h:"Cross-embodiment 액션 이질성", tr:["rfm","vla"], ev:"limit",
+ b:["자유도가 다르거나 구조가 다른 로봇으로 전이되지 않는다. 고정된 embodiment 집합의 액션 데이터로 학습한 모델은 다른 구조에 일반화되지 않으며, 제어 인터페이스의 다양성이 문제를 키운다.",
+    "[[pi07]]의 zero-shot 주장, [[dreamzero]]의 30분 play 데이터 적응, [[gemini-robotics-2]] 온디바이스 버전의 수 시간 적응이 상황을 움직이고 있으나 모두 자체 평가이며 독립 검증이 없다. [[uniact]] 저자들은 진정한 zero-shot에 미달한다고 스스로 기술한다."],
+ s:"2511.05936 §2.5 · UniAct (CVPR 2025) · 2604.15483 · 2602.15922"},
+
+{h:"평가의 신뢰성", tr:["data"], ev:"measured",
+ b:["시뮬레이션과 실기의 상관 부족, 표준화와 다양성의 상충, 그리고 암기와 일반화를 구분할 진단 도구의 부재.",
+    "2026년 시점의 평가 인프라는 실기 크라우드소싱([[roboarena]]), real-to-sim 확장([[robotarena-inf]]), 축 분리 진단([[vla-arena]])의 세 갈래로 분화했고, 세 갈래 모두 현행 VLA의 일반화 주장에 부정적인 실측을 내놓았다.",
+    "이 문제는 다른 모든 미해결 항목의 판정을 어렵게 만든다는 점에서 메타적 위치에 있다."],
+ s:"2506.18123 · 2512.22539 · RobotArena∞ (ICLR 2026) · 2511.05936 §2.4"},
+
+{h:"온보드 자원 제약", tr:["vla","rfm"], ev:"limit",
+ b:["로봇은 공간과 전력 제약 때문에 학습 인프라보다 훨씬 적은 연산만 갖는다. 씬 클라이언트로 서버에 추론을 위임하는 구조는 네트워크 지연과 단절에 취약하고, 온보드용 소형 VLA는 대형 모델보다 성능이 떨어진다.",
+    "월드 모델 계열은 문제가 더 심각하다. [[dreamzero]]가 38배 최적화를 거쳐 도달한 제어 주파수가 7Hz이며, [[fastwam]]이 영상 생성을 건너뛰는 방식으로 이 비용을 피하려 한다."],
+ s:"2511.05936 §2.6 · 2602.15922 · NVIDIA 기술 블로그"},
+
+{h:"접촉 모드의 전역 최적화", tr:["mpc"], ev:"limit",
+ b:["가능한 접촉 시퀀스가 지수적이라 실시간 전역 최적화가 불가능하고, 국소 근사는 근방 접촉만 활용한다는 것이 [[cimpc-global]] 서두의 문제 설정이다.",
+    "샘플링과 국소 상보성의 결합, [[cascaded-contact]]의 계단식 접촉 선택, [[where-to-touch]]의 계층적 RL-MPC가 부분해를 내놓았지만 어느 것도 문제를 해소했다고 주장하지 않는다.",
+    "[[parallel-smpc-real]]이 실기에서 확인한 접촉 민감성과 실시간 도메인 랜덤화 신호 부족은 이 문제와 얽혀 있다."],
+ s:"2505.13350 · 2606.20712 · 2601.10930 · 2605.27972"},
+
+{h:"변형체·유체·다물체", tr:["traj","vla"], ev:"limit",
+ b:["변형체 조작 서베이의 진단은 단기 과제에서는 상당한 진전이 있었으나 장기 과제는 열려 있다는 것이다. 도구와 물체의 상호작용 이해가 부족해 로봇 도구 사용이 제약되고, 다중 도구를 쓰는 장기 시스템에서도 재료가 도구에 달라붙는 식의 실패가 빈번하다.",
+    "이 서베이가 제시한 향후 방향은 VLA·강화학습·월드모델의 알고리즘적 시너지, 촉각 센서를 갖춘 범용 고자유도 다지 손, 그리고 대규모 종합 평가 세 가지다."],
+ s:"2312.10419 (Neurocomputing 2026 개정판)"},
+
+{h:"안전 보증과 형식 검증", tr:["vla","mpc"], ev:"measured",
+ b:["[[safevla]]의 위반 비용 83.58% 감소도, [[probeact]]의 사후 CBF 필터도 통계적 개선이지 보증이 아니다.",
+    "[[vla-arena]]는 현행 모델들이 안전 제약을 아예 고려하지 않는다는 것을 실측했다. 물리적 행동은 인간 감독 없이 직접 해를 끼칠 수 있다는 점에서 LLM 안전 문제와 성격이 다르며, 학습 정책에 대한 형식 검증은 사실상 백지 상태다."],
+ s:"2503.03480 · 2606.09740 · 2512.22539 · 2511.05936 §2.8"},
+
+{h:"실패 감지·복구·자율 개선", tr:["vla"], ev:"limit",
+ b:["[[pistar06]]이 정면으로 다루는 문제이지만, 그 논문 자신이 남긴 미해결 목록이 곧 이 영역의 현주소다. 대용량 모델 RL의 안정성, 표본 복잡도, 자율성, 지연된 피드백.",
+    "온로봇 RL이 실용적 도구가 되려면 추가 연구가 필요하다는 것이 Physical Intelligence의 공식 입장이며, [[z1]]과 [[pirl]]이 각각 효율과 온라인 파인튜닝 쪽에서 접근하고 있다."],
+ s:"2511.14759 · 2606.09740 · 2606.31846"},
+
+{h:"전신 협응", tr:["mpc","vla"], ev:"limit",
+ b:["MPC는 정확한 모델을 요구하고, 차원과 비평활 접촉 이벤트가 늘면 실시간 병목에 걸리며, embodiment별 튜닝이 필요해 상위 비전-언어 계획과의 통합이 어렵다. 반대로 학습 정책은 탐색과 신용 할당에 어려움을 겪고 보상 설계에 민감하며 embodiment 간 일반화가 나쁘다.",
+    "[[open-challenges]]는 해석적 구조와 학습 유연성을 결합하는 하이브리드 제어를 유력한 경로로 제시하지만 이는 방향 제시이지 해결이 아니다. [[gemini-robotics-2]]가 전신 제어를 실증하면서도 다지 정밀 조작은 미해결이라고 밝힌 것과 일치한다."],
+ s:"2511.05936 §2.7 · Gemini Robotics 2 릴리스"},
+
+{h:"sim-to-real과 인간 영상 전이의 메커니즘", tr:["data","rfm"], ev:"limit",
+ b:["로코모션에서는 시뮬레이션 격차가 좁혀졌지만 매니퓰레이션에서는 심각하게 남아 있다는 것이 공통 진술이다.",
+    "인간 영상 전이는 [[egoscale]]과 [[humanscale]]에서 스케일링 법칙이 확인되었으나, [[dreamzero]] 논문 스스로 전이 메커니즘 강화에 추가 연구가 필요하다고 유보를 단다. 된다는 것은 확인되었고 왜, 어디까지 되는가는 미해결이다."],
+ s:"2602.16710 · 2606.20521 · 2602.15922"},
+
+{h:"학습 정책과 최적화 계층의 인터페이스", tr:["traj","mpc","vla"], ev:"mine",
+ b:["VLA는 제약을 만족한다는 보증 없이 액션 청크를 내놓고, [[curobov2]]와 CI-MPC 계열은 명시적 제약을 만족시키지만 무엇을 해야 하는지를 모른다.",
+    "현재의 결합 방식은 대체로 세 가지다. 사후 필터([[probeact]]), 계층 분해([[where-to-touch]]), 학습된 사전으로 최적화 초기해 제공([[mpd]]). 어느 것도 두 계층의 목적함수를 일관되게 정의하지 않으며, 학습 정책의 다봉 분포와 최적화의 국소 수렴을 어떻게 정합시킬지에 대한 표준이 없다.",
+    "이 항목은 개별 논문이 단일 문제로 명명한 것이 아니라 여러 문헌의 한계 진술을 교차해 정리자가 묶은 것이므로, 다른 항목과 근거의 성격이 다르다."],
+ s:"정리자 종합 · 간접 근거 2511.05936 §2.7"}
+];
+
+const MX = [
+ {k:"vla", s:"새 지시와 새 물체에 대한 의미 일반화", w:"물리 동작 일반화, 접촉과 힘, 장기 조합", o:"사전학습 코퍼스가 시각-언어에 한정되고 액션 데이터가 원격조작 분포에 갇혀 있다."},
+ {k:"rfm", s:"미지 환경의 물리 동작 예측, 영상만으로의 전이", w:"연산 비용과 제어 주파수", o:"영상 확산 백본의 추론 비용이 한 자릿수 규모로 크다. DreamZero 기준 7Hz."},
+ {k:"traj",s:"밀리초 단위의 실행 가능성·충돌·토크 보장", w:"무엇을 해야 하는지에 대한 의미론 부재", o:"목표와 비용함수를 외부에서 받아야 한다. 접촉이 개입하면 문제가 조합적으로 폭발한다."},
+ {k:"mpc", s:"접촉과 외란에 대한 실시간 반응", w:"접촉 모드의 전역 탐색, 모델 정확도 의존", o:"접촉 시퀀스 공간이 지수적이고, 실시간 예산 안에서 유의미한 적응 신호를 얻기 어렵다."}
+];
+
+const EXT = {
+ "논문 목록과 서베이":[
+  ["Awesome-Robotics-Manipulation","https://github.com/BaiShuanghao/Awesome-Robotics-Manipulation"],
+  ["Awesome VLA","https://github.com/KwanWaiPang/Awesome-VLA"],
+  ["awesome-embodied-vla-va-vln","https://github.com/jonyzhang2023/awesome-embodied-vla-va-vln"],
+  ["Awesome-Robotics-Diffusion","https://github.com/showlab/Awesome-Robotics-Diffusion"]],
+ "코드와 모델":[
+  ["openpi (π 계열)","https://github.com/Physical-Intelligence/openpi"],
+  ["DreamZero","https://github.com/dreamzero0/dreamzero"],
+  ["cuRobo / cuRoboV2","https://github.com/nvlabs/curobo"],
+  ["RoboArena","https://github.com/robo-arena/roboarena"],
+  ["AgiBot World","https://github.com/OpenDriveLab/AgiBot-World"]],
+ "공식 릴리스":[
+  ["π0.7 블로그","https://www.pi.website/blog/pi07"],
+  ["π*0.6 블로그","https://pi.website/blog/pistar06"],
+  ["Gemini Robotics 2","https://deepmind.google/blog/gemini-robotics-2-brings-whole-body-intelligence-to-robots/"],
+  ["Isaac GR00T","https://developer.nvidia.com/isaac/gr00t"]]
+};
+
+/* ═══════════════════ 렌더링 ═══════════════════ */
+const BY = Object.fromEntries(P.map(p=>[p.s,p]));
+const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;");
+const wl = t => String(t).replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (m,slug,label)=>{
+  if(slug==="open-problems") return `<a href="#/open-problems">${label||"미해결 문제"}</a>`;
+  if(slug==="list") return `<a href="#/list">${label||"전체 논문 목록"}</a>`;
+  const p = BY[slug];
+  if(!p) return `<a class="new" href="#/">${label||slug}</a>`;
+  return `<a href="#/paper/${slug}">${label||p.n}</a>`;
+});
+const chip = k => `<span class="tk" style="color:${TRACKS[k].c};border-color:${TRACKS[k].c}">${TRACKS[k].n}</span>`;
+const byDate = (a,b)=>a.d<b.d?-1:a.d>b.d?1:0;
+
+function shell(title, sub, html, cats){
+  return `<div class="tabs"><a href="#/">문서</a><a href="#/list">논문 목록</a><a href="#/timeline">연표</a><a href="#/open-problems">미해결 문제</a></div>
+  <h1 class="title">${title}</h1>${sub||""}${html}
+  <div class="cats"><b>분류:</b> ${cats.map(c=>`<span>${c}</span>`).join(" · ")}</div>
+  <div class="foot">이 문서는 2026년 9월 3일에 마지막으로 편집되었습니다. 수치와 주장은 원 논문 또는 공식 릴리스가 보고한 값이며, 평가 프로토콜이 다른 논문의 수치는 직접 비교하지 않았습니다.</div>`;
+}
+
+/* ── 메인 문서 ── */
+function pageMain(){
+  const counts = Object.keys(TRACKS).map(k=>`${TRACKS[k].n} ${P.filter(p=>p.t===k).length}`).join(" · ");
+  const ib = `<div class="infobox">
+    <div class="ib-title">로봇 매니퓰레이션 연구</div>
+    <div class="ib-sub">2023–2026 문헌 지도</div>
+    <table>
+      <tr><th>분야</th><td>로봇 조작, 임베디드 AI</td></tr>
+      <tr><th>수록 범위</th><td>2023년 6월 – 2026년 8월</td></tr>
+      <tr><th>수록 문헌</th><td>${P.length}편</td></tr>
+      <tr><th>계열</th><td>${counts}</td></tr>
+      <tr><th>미해결 문제</th><td>${PROBS.length}개 영역</td></tr>
+      <tr><th>대표 모델</th><td>${wl("[[pi07]], [[gemini-robotics-2]], [[groot-n2]], [[dreamzero]]")}</td></tr>
+      <tr><th>대표 데이터셋</th><td>${wl("[[oxe]], [[droid]], [[agibot-go1]]")}</td></tr>
+      <tr><th>대표 평가</th><td>${wl("[[roboarena]], [[vla-arena]], [[robotarena-inf]]")}</td></tr>
+    </table></div>`;
+
+  const toc = `<div class="toc"><div class="h">목차</div><ol>
+    <li><a href="#s1">개요</a></li>
+    <li><a href="#s2">배경과 용어</a></li>
+    <li><a href="#s3">계열별 연구 동향</a>
+      <ol><li><a href="#s3-1">VLA</a></li><li><a href="#s3-2">파운데이션 모델과 월드 모델</a></li>
+      <li><a href="#s3-3">궤적 최적화</a></li><li><a href="#s3-4">모델예측제어</a></li></ol></li>
+    <li><a href="#s4">데이터셋과 평가</a></li>
+    <li><a href="#s5">미해결 문제</a></li>
+    <li><a href="#s6">계열 간 관계</a></li>
+    <li><a href="#s7">같이 보기</a></li>
+    <li><a href="#s8">외부 링크</a></li>
+  </ol></div>`;
+
+  const tbl = (k) => {
+    const rows = P.filter(p=>p.t===k).sort(byDate).map(p=>
+      `<tr><td class="nowrap">${wl("[["+p.s+"]]")}</td><td class="mono nowrap">${esc(p.aid)}</td><td class="mono nowrap">${p.d}</td><td>${wl(p.lead)}</td></tr>`).join("");
+    return `<div class="tblwrap"><table class="wt"><thead><tr><th style="width:15%">문서</th><th style="width:13%">식별자</th><th style="width:8%">시점</th><th>요약</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  };
+
+  const body = `
+  ${ib}
+  <p class="hat">이 문서는 로봇 매니퓰레이션 연구를 다룬다. 개별 논문은 각 문서를 참조한다. 전체 목록은 ${wl("[[list|논문 목록]]")}에 있다.</p>
+  <p><b>로봇 매니퓰레이션 연구</b>는 로봇이 물체를 잡고 옮기고 조립하고 변형시키는 능력을 다루는 로보틱스의 하위 분야다. 2023년 이후 이 분야는 네 갈래의 연구 전통이 서로 다른 시간 스케일과 서로 다른 정보를 다루며 병행 발전해 왔다. 시각과 언어로부터 액션을 생성하는 <a href="#/track/vla">VLA</a>, 물리 동역학을 함께 예측하는 <a href="#/track/rfm">파운데이션 모델과 월드 모델</a>, 제약을 명시적으로 만족시키는 <a href="#/track/traj">궤적 최적화</a>, 그리고 매 제어 주기마다 최적화를 다시 푸는 <a href="#/track/mpc">모델예측제어</a>다.</p>
+  <p>이 위키는 2023년 6월부터 2026년 8월까지의 주요 문헌 ${P.length}편을 계보 중심으로 정리하고, 각 논문이 스스로 명시한 한계와 벤치마크 논문이 실측으로 드러낸 실패 지점을 근거로 미해결 영역 ${PROBS.length}개를 식별한다.</p>
+  ${toc}
+
+  <h2 id="s1">1 개요</h2>
+  <p>2026년 시점에서 실제 시스템은 대부분 혼합 구조다. π 계열은 시각-언어 모델 기반 상위 계층이 이산 토큰으로 서브골을 내고 flow matching action expert가 연속 제어를 담당하는 이중 구조이며, ${wl("[[curobov2]]")}와 접촉 암시적 MPC 계열은 산업 배치에서 학습 정책의 출력을 안전하게 실행 가능한 궤적으로 사영하는 역할을 맡는다.</p>
+  <p>그런데 이 두 세계를 잇는 인터페이스에는 아직 표준이 없다. 이 점이 <a href="#/open-problems">미해결 문제</a> 문서에서 다루는 열두 번째 항목이자, 나머지 항목 다수가 수렴하는 지점이다.</p>
+  <div class="note-box">산업계 릴리스인 ${wl("[[gemini-robotics-2]]")}와 ${wl("[[groot-n2]]")}의 성능 주장은 논문이 아니라 블로그와 보도자료에 기반하며 독립 재현이 없다. 이 위키에서는 해당 문서에 출처 유형을 명시했다.</div>
+
+  <h2 id="s2">2 배경과 용어</h2>
+  <dl>
+    <dt>액션 청크 (action chunk)</dt><dd>한 번의 추론으로 생성하는 연속된 여러 시점의 액션 묶음. 청크 단위 생성이 자기회귀 방식보다 고주파 제어에 유리하다.</dd>
+    <dt>이산 액션 표현</dt><dd>액션 각 차원을 분위수 기반으로 구간에 매핑해 토큰으로 다루는 방식. 구현이 단순하지만 양자화 오차가 남고 자기회귀 디코딩 탓에 3~5Hz 수준에 머문다.</dd>
+    <dt>연속 액션 표현</dt><dd>확산 또는 flow matching으로 청크 전체를 생성하는 방식. 다봉 분포를 잘 다루지만 수렴 연산 예산이 크다. 확산 기반은 50~100 디노이징 스텝으로 flow matching 대비 2~4배 지연이 보고된다.</dd>
+    <dt>action expert</dt><dd>VLM 백본의 은닉 상태를 조건으로 연속 액션을 생성하는 별도의 소형 모듈. ${wl("[[pi0]]")}이 대표적이다.</dd>
+    <dt>월드 액션 모델 (WAM)</dt><dd>미래 세계 상태와 액션을 함께 예측하는 모델. 영상을 세계 변화의 밀집 표현으로 사용한다. ${wl("[[dreamzero]]")} 참조.</dd>
+    <dt>접촉 암시적 (contact-implicit)</dt><dd>접촉 모드를 사전에 정하지 않고 최적화 문제 안에서 상보성 제약으로 다루는 정식화.</dd>
+    <dt>상보성 제약</dt><dd>접촉점이 닿지 않을 때 접촉력이 0이어야 한다는 조건. 허용 접촉점 수가 늘면 해 시간이 가파르게 증가한다.</dd>
+  </dl>
+
+  <h2 id="s3">3 계열별 연구 동향</h2>
+  <h3 id="s3-1">3.1 VLA</h3>
+  <p>${wl("[[rt2]]")}가 패러다임을 정립한 이후, 연구의 실질적 차이는 대체로 액션을 어떻게 표현하느냐로 환원된다. ${wl("[[openvla]]")}가 이산 토큰 노선의 기준선을, ${wl("[[pi0]]")}이 연속 flow matching 노선을 대표하며, ${wl("[[fast]]")}는 이산 표현의 속도 병목을 크게 완화했고 ${wl("[[knowledge-insulation]]")}은 둘을 결합할 때 생기는 지식 손상을 해결해 이후 표준 레시피가 되었다.</p>
+  <p>2025년 말부터의 축은 사후학습 강화학습이다. ${wl("[[pistar06]]")}이 실배치 RL로 오차 누적을 다루었고, ${wl("[[pi07]]")}은 컨텍스트 조건화로 조종 가능성을 확보했다. 병행해 ${wl("[[gemini-robotics-2]]")}가 전신 제어를, ${wl("[[groot-n2]]")}가 월드 모델 기반 아키텍처를 내놓았다. 2026년에는 촉각과 힘을 주입하려는 연구가 급증했다.</p>
+  ${tbl("vla")}
+
+  <h3 id="s3-2">3.2 파운데이션 모델과 월드 모델</h3>
+  <p>2026년의 가장 큰 방향 전환은 VLA가 의미 일반화는 잘하지만 물리 동작 일반화는 못한다는 진단이 정량화되면서 일어났다. ${wl("[[dreamzero]]")}가 대표 사례이며, ${wl("[[lapa]]")}에서 출발한 잠재 액션 계열과 ${wl("[[vjepa2]]")}의 임베딩 예측 노선이 각각 대안을 제시한다.</p>
+  ${tbl("rfm")}
+
+  <h3 id="s3-3">3.3 궤적 최적화</h3>
+  <p>두 흐름이 있다. 하나는 GPU 병렬화로 계산 자체를 밀어붙이는 ${wl("[[curobo]]")}–${wl("[[curobov2]]")}–${wl("[[cutamp]]")} 계열이고, 다른 하나는 최적화의 초기해를 학습으로 대체하는 ${wl("[[mpd]]")}–${wl("[[flowmp]]")}–${wl("[[fsdmp]]")} 계열이다. 후자의 문제의식은 최적화 기반 플래너의 성능이 초기해에 크게 좌우되는데 샘플링 기반 초기해가 고차원에서 느리고 비평활하다는 것이다.</p>
+  ${tbl("traj")}
+
+  <h3 id="s3-4">3.4 모델예측제어</h3>
+  <p>접촉 암시적 MPC는 접촉 시퀀스의 조합 폭발이라는 근본 제약 아래에서 국소 근사와 전역 샘플링을 조합하는 방향으로 발전해 왔다. ${wl("[[cimpc-global]]")}이 전형적이다. 병행해 GPU 시뮬레이터와 결합한 샘플링 기반 MPC가 다시 유효해졌고, ${wl("[[parallel-smpc-real]]")}이 실기 배치와 실패 분석을 함께 보고했다.</p>
+  ${tbl("mpc")}
+
+  <h2 id="s4">4 데이터셋과 평가</h2>
+  <p>데이터 쪽에서는 ${wl("[[oxe]]")}와 ${wl("[[droid]]")}에 이어 ${wl("[[agibot-go1]]")}이 규모를 한 자릿수 끌어올렸고, 2026년에는 1인칭 인간 영상이 주요 사전학습 소스로 부상했다. ${wl("[[egoscale]]")}과 ${wl("[[humanscale]]")}이 각각 로그-선형 스케일링 법칙을 보고했으며, 후자는 동일 데이터량 조건에서 인간 영상이 원격조작 실로봇 데이터를 앞섰다고 주장한다.</p>
+  <p>평가 쪽은 세 갈래로 분화했다. 실기 크라우드소싱(${wl("[[roboarena]]")}), real-to-sim 확장(${wl("[[robotarena-inf]]")}), 축 분리 진단(${wl("[[vla-arena]]")}). 세 갈래 모두 현행 VLA의 일반화 주장에 부정적인 실측을 내놓고 있다는 점이 이 시기 평가 문헌의 공통점이다.</p>
+  ${tbl("data")}
+
+  <h2 id="s5">5 미해결 문제</h2>
+  <p>${PROBS.length}개 영역을 판정 근거의 유형별로 정리했다. 자세한 내용은 <a href="#/open-problems">미해결 문제</a> 문서를 참조한다.</p>
+  <div class="tblwrap"><table class="wt"><thead><tr><th style="width:26%">영역</th><th style="width:16%">근거 유형</th><th>관련 계열</th></tr></thead><tbody>
+  ${PROBS.map((x,i)=>`<tr><td><a href="#/open-problems#p${i}">${x.h}</a></td><td>${{measured:"벤치마크 실측",limit:"논문 한계 진술",mine:"정리자 종합"}[x.ev]}</td><td>${x.tr.map(chip).join(" ")}</td></tr>`).join("")}
+  </tbody></table></div>
+
+  <h2 id="s6">6 계열 간 관계</h2>
+  <p>각 계열의 약점은 다른 계열의 강점과 거의 정확히 상보적이다. 그럼에도 통합 프레임워크가 표준화되지 않은 이유는 인터페이스 정의와 평가 방법이 함께 미해결이기 때문으로 보인다. 다만 이 마지막 인과 진술은 문헌이 직접 주장한 것이 아니라 정리자의 해석이다.</p>
+  <div class="tblwrap"><table class="wt"><thead><tr><th style="width:14%">계열</th><th style="width:24%">강한 지점</th><th style="width:24%">약한 지점</th><th>병목의 원천</th></tr></thead><tbody>
+  ${MX.map(r=>`<tr><td>${chip(r.k)}</td><td>${r.s}</td><td>${r.w}</td><td>${r.o}</td></tr>`).join("")}
+  </tbody></table></div>
+
+  <h2 id="s7">7 같이 보기</h2>
+  <ul class="plain">
+    <li><a href="#/list">전체 논문 목록</a> — 계열, 시점, 식별자로 정렬 가능한 색인</li>
+    <li><a href="#/timeline">연표</a> — 2023년부터 2026년까지의 발표 시점</li>
+    <li><a href="#/open-problems">미해결 문제</a> — 근거를 명시한 12개 영역</li>
+    ${Object.keys(TRACKS).map(k=>`<li><a href="#/track/${k}">${TRACKS[k].full}</a></li>`).join("")}
+  </ul>
+
+  <h2 id="s8">8 외부 링크</h2>
+  ${Object.entries(EXT).map(([h,l])=>`<h3>${h}</h3><ul class="plain">${
+    l.map(([n,u])=>`<li><a class="ext" href="${u}" target="_blank" rel="noopener">${n}</a></li>`).join("")}</ul>`).join("")}
+  `;
+  return shell("로봇 매니퓰레이션 연구","",body,["로보틱스","임베디드 AI","연구 문헌 지도"]);
+}
+
+/* ── 논문 문서 ── */
+function pagePaper(slug){
+  const p = BY[slug];
+  if(!p) return shell("문서 없음","",`<p>요청한 문서가 존재하지 않는다. <a href="#/list">논문 목록</a>에서 찾아본다.</p>`,["없는 문서"]);
+  const tr = TRACKS[p.t];
+  const sib = P.filter(x=>x.t===p.t).sort(byDate);
+  const i = sib.indexOf(p);
+  const nav = [i>0?`이전: ${wl("[["+sib[i-1].s+"]]")}`:"", i<sib.length-1?`다음: ${wl("[["+sib[i+1].s+"]]")}`:""].filter(Boolean).join(" · ");
+
+  const ib = `<div class="infobox">
+    <div class="ib-title">${esc(p.n)}</div>
+    <div class="ib-sub">${esc(p.full)}</div>
+    <table>
+      <tr><th>계열</th><td><a href="#/track/${p.t}">${tr.full}</a></td></tr>
+      <tr><th>주체</th><td>${esc(p.org)}</td></tr>
+      <tr><th>공개 시점</th><td class="mono">${p.d}</td></tr>
+      <tr><th>식별자</th><td class="mono">${esc(p.aid)}</td></tr>
+      <tr><th>게재</th><td>${esc(p.venue)}</td></tr>
+      ${p.aid.startsWith("arXiv:")?`<tr><th>원문</th><td><a class="ext" target="_blank" rel="noopener" href="https://arxiv.org/abs/${p.aid.slice(6)}">arxiv.org/abs/${p.aid.slice(6)}</a></td></tr>`:""}
+    </table></div>`;
+
+  const secs = (p.body||[]).map((b,ix)=>`<h2 id="b${ix}">${ix+1} ${esc(b[0])}</h2>`+
+     b.slice(1).map(t=>`<p>${wl(t)}</p>`).join("")).join("");
+
+  const toc = (p.body&&p.body.length>1) ? `<div class="toc"><div class="h">목차</div><ol>${
+    p.body.map((b,ix)=>`<li><a href="#b${ix}">${esc(b[0])}</a></li>`).join("")}<li><a href="#see">같이 보기</a></li></ol></div>` : "";
+
+  const stub = !p.body ? `<div class="stub">이 문서는 토막글입니다. 요약과 서지 정보만 정리되어 있으며 본문이 확장되지 않았습니다.</div>` : "";
+
+  const see = `<h2 id="see">${(p.body?p.body.length+1:1)} 같이 보기</h2><ul class="plain">${
+    (p.see||[]).map(s=>{
+      if(s==="open-problems") return `<li><a href="#/open-problems">미해결 문제</a></li>`;
+      const q=BY[s]; return q?`<li>${wl("[["+s+"]]")} — ${wl(q.lead.split(".")[0])}.</li>`:"";
+    }).join("")}</ul>`;
+
+  const body = `${ib}
+    <p class="hat">${chip(p.t)} 계열 문서. ${nav}</p>
+    ${stub}
+    <p><b>${esc(p.full)}</b>${p.aid.startsWith("arXiv")?` (<span class="mono">${esc(p.aid)}</span>)`:""}는 ${esc(p.org)}가 ${p.d.replace("-","년 ")}월에 공개한 문헌이다. ${wl(p.lead)}</p>
+    ${toc}${secs}${see}`;
+  return shell(p.n, "", body, [tr.full, p.d.slice(0,4)+"년 문헌", p.key?"주요 문서":"토막글"]);
+}
+
+/* ── 계열 문서 ── */
+function pageTrack(k){
+  const tr = TRACKS[k]; if(!tr) return pageMain();
+  const list = P.filter(p=>p.t===k).sort(byDate);
+  const rows = list.map(p=>`<tr><td class="nowrap">${wl("[["+p.s+"]]")}</td><td class="nowrap">${esc(p.org)}</td><td class="mono nowrap">${p.d}</td><td class="mono nowrap">${esc(p.aid)}</td><td>${wl(p.lead)}</td></tr>`).join("");
+  const rel = PROBS.map((x,i)=>x.tr.includes(k)?`<li><a href="#/open-problems#p${i}">${x.h}</a></li>`:"").join("");
+  const body = `<div class="infobox"><div class="ib-title">${esc(tr.full)}</div>
+    <table><tr><th>약칭</th><td>${esc(tr.n)}</td></tr><tr><th>수록 문헌</th><td>${list.length}편</td></tr>
+    <tr><th>기간</th><td class="mono">${list[0].d} – ${list[list.length-1].d}</td></tr></table></div>
+    <p class="hat">${chip(k)} 계열의 문헌 목록. 상위 문서는 <a href="#/">로봇 매니퓰레이션 연구</a>다.</p>
+    <p>이 계열에는 ${list.length}편의 문헌이 수록되어 있다. 시간순으로 정렬했다.</p>
+    <div class="tblwrap"><table class="wt"><thead><tr><th style="width:15%">문서</th><th style="width:13%">주체</th><th style="width:8%">시점</th><th style="width:13%">식별자</th><th>요약</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <h2>관련 미해결 문제</h2><ul class="plain">${rel||"<li>없음</li>"}</ul>`;
+  return shell(tr.full,"",body,["계열 문서",tr.n]);
+}
+
+/* ── 목록 ── */
+function pageList(){
+  const rows = P.slice().sort(byDate).reverse().map(p=>
+    `<tr data-t="${p.t}" data-k="${(p.n+" "+p.full+" "+p.aid+" "+p.lead).toLowerCase()}">
+      <td>${chip(p.t)}</td><td class="nowrap">${wl("[["+p.s+"]]")}</td>
+      <td class="mono nowrap">${p.d}</td><td class="mono nowrap">${esc(p.aid)}</td>
+      <td class="nowrap">${esc(p.org)}</td><td>${wl(p.lead)}</td></tr>`).join("");
+  const body = `<p class="hat">전체 ${P.length}편. 최신순 정렬. 계열 단추와 검색창으로 걸러낸다.</p>
+    <p style="margin:12px 0">
+      <button class="fb" data-f="all">전체</button>
+      ${Object.keys(TRACKS).map(k=>`<button class="fb" data-f="${k}">${TRACKS[k].n}</button>`).join("")}
+      <input type="search" id="lq" placeholder="표제·식별자·요약 검색" style="font:inherit;font-size:13px;padding:4px 8px;border:1px solid var(--rule-soft);margin-left:8px">
+    </p>
+    <div class="tblwrap"><table class="wt" id="lt"><thead><tr><th style="width:9%">계열</th><th style="width:14%">문서</th><th style="width:8%">시점</th><th style="width:12%">식별자</th><th style="width:13%">주체</th><th>요약</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  return shell("논문 목록","",body,["색인"]);
+}
+
+/* ── 연표 ── */
+function pageTimeline(){
+  const years = ["2023","2024","2025","2026"];
+  const body = `<p class="hat">공개 시점 기준 연표. 굵게 표시한 것은 주요 문서다.</p>` +
+   years.map(y=>{
+     const list = P.filter(p=>p.d.startsWith(y)).sort(byDate);
+     if(!list.length) return "";
+     const rows = list.map(p=>`<tr><td class="mono nowrap">${p.d}</td><td>${chip(p.t)}</td>
+        <td class="nowrap">${p.key?"<b>":""}${wl("[["+p.s+"]]")}${p.key?"</b>":""}</td><td>${wl(p.lead)}</td></tr>`).join("");
+     return `<h2 id="y${y}">${y}년 <span style="font-size:13px;color:var(--muted)">(${list.length}편)</span></h2>
+       <div class="tblwrap"><table class="wt"><tbody>${rows}</tbody></table></div>`;
+   }).join("");
+  return shell("연표","",body,["연표"]);
+}
+
+/* ── 미해결 문제 ── */
+function pageProblems(){
+  const EV = {measured:"벤치마크 실측",limit:"논문 한계 진술",mine:"정리자 종합"};
+  const toc = `<div class="toc"><div class="h">목차</div><ol>${PROBS.map((x,i)=>`<li><a href="#p${i}">${x.h}</a></li>`).join("")}</ol></div>`;
+  const body = `<p class="hat">상위 문서는 <a href="#/">로봇 매니퓰레이션 연구</a>다.</p>
+  <p>이 문서는 2026년 8월 기준으로 미해결로 남아 있는 ${PROBS.length}개 영역을 정리한다. 판정 근거는 세 유형으로 구분했다. <b>벤치마크 실측</b>은 평가 논문이 수치로 드러낸 것, <b>논문 한계 진술</b>은 해당 논문이나 서베이가 스스로 명시한 것, <b>정리자 종합</b>은 여러 문헌의 한계 진술을 교차해 묶은 것으로 다른 둘과 근거의 성격이 다르다.</p>
+  ${toc}
+  ${PROBS.map((x,i)=>`
+    <h2 id="p${i}">${i+1} ${x.h}</h2>
+    <p style="margin-bottom:8px">${EV[x.ev]} · 관련 계열 ${x.tr.map(chip).join(" ")}</p>
+    ${x.b.map(t=>`<p>${wl(t)}</p>`).join("")}
+    <p class="mono" style="color:var(--muted);font-size:12.4px">근거: ${esc(x.s)}</p>`).join("")}
+  <h2>정리</h2>
+  <p>객관적으로 확인 가능한 사실만 다시 정리하면 다음과 같다. VLA는 의미 일반화에서 강하고 물리 동작 일반화에서 약하며, 월드 모델은 그 반대의 문제를 안고 연산 비용을 치른다. 궤적 최적화는 실행 가능성과 안전을 밀리초 단위로 보장하지만 의미론이 없고, MPC는 접촉과 외란에 반응하지만 접촉 모드의 전역 탐색이 실시간에 불가능하다.</p>
+  <div class="tblwrap"><table class="wt"><thead><tr><th style="width:14%">계열</th><th style="width:24%">강한 지점</th><th style="width:24%">약한 지점</th><th>병목의 원천</th></tr></thead><tbody>
+  ${MX.map(r=>`<tr><td>${chip(r.k)}</td><td>${r.s}</td><td>${r.w}</td><td>${r.o}</td></tr>`).join("")}
+  </tbody></table></div>`;
+  return shell("미해결 문제","",body,["미해결 문제","연구 과제"]);
+}
+
+/* ═══════════════════ 라우팅 ═══════════════════ */
+let CUR = "/";
+
+function render(path, anchor){
+  const seg = path.split("/").filter(Boolean);
+  let html, title;
+  if(seg[0]==="paper" && seg[1]){ html = pagePaper(seg[1]); title = (BY[seg[1]]||{n:"문서 없음"}).n; }
+  else if(seg[0]==="track" && seg[1]){ html = pageTrack(seg[1]); title = (TRACKS[seg[1]]||{full:""}).full; }
+  else if(seg[0]==="list"){ html = pageList(); title="논문 목록"; }
+  else if(seg[0]==="timeline"){ html = pageTimeline(); title="연표"; }
+  else if(seg[0]==="open-problems"){ html = pageProblems(); title="미해결 문제"; }
+  else { html = pageMain(); title="로봇 매니퓰레이션 연구"; }
+
+  document.getElementById("main").innerHTML = html;
+  document.title = title + " — 로봇 매니퓰레이션 위키";
+  bindList();
+  markNav(seg);
+  if(anchor){ const t=document.getElementById(anchor); if(t){ try{t.scrollIntoView();}catch(e){} return; } }
+  try{ window.scrollTo(0,0); }catch(e){}
+}
+
+function navigate(path, anchor, sync){
+  CUR = path;
+  render(path, anchor);
+  if(sync !== false){
+    const want = "#" + path + (anchor ? "#" + anchor : "");
+    try{ if(location.hash !== want) location.hash = want.slice(1) + ""; }catch(e){}
+  }
+}
+
+document.addEventListener("click", function(e){
+  const a = e.target.closest ? e.target.closest("a") : null;
+  if(!a) return;
+  const href = a.getAttribute("href") || "";
+  if(href.slice(0,2) === "#/"){
+    e.preventDefault();
+    const parts = href.slice(1).split("#");
+    navigate(parts[0], parts[1]);
+  } else if(href.charAt(0) === "#" && href.length > 1){
+    e.preventDefault();
+    const t = document.getElementById(href.slice(1));
+    if(t){ try{ t.scrollIntoView(); }catch(err){} }
+  }
+});
+
+function markNav(seg){
+  document.querySelectorAll("#side li").forEach(li=>li.classList.remove("cur"));
+  const key = seg[0]==="track" ? "t:"+seg[1] : (seg[0]||"home");
+  const el = document.querySelector(`#side li[data-key="${key}"]`);
+  if(el) el.classList.add("cur");
+}
+
+function bindList(){
+  const t = document.getElementById("lt"); if(!t) return;
+  let f = "all";
+  const q = document.getElementById("lq");
+  const apply = ()=>{
+    const term = (q.value||"").trim().toLowerCase();
+    t.querySelectorAll("tbody tr").forEach(r=>{
+      const ok = (f==="all"||r.dataset.t===f) && (!term || r.dataset.k.includes(term));
+      r.style.display = ok ? "" : "none";
+    });
+  };
+  document.querySelectorAll(".fb").forEach(b=>{
+    b.style.cssText="font:inherit;font-size:12.5px;padding:3px 10px;border:1px solid var(--rule-soft);background:var(--box);cursor:pointer;margin-right:4px";
+    b.onclick=()=>{ f=b.dataset.f;
+      document.querySelectorAll(".fb").forEach(x=>x.style.background="var(--box)");
+      b.style.background="#dfe6f5"; apply(); };
+  });
+  q.oninput = apply;
+}
+
+/* 사이드바 */
+(function(){
+  document.getElementById("nav-main").innerHTML = `
+    <li data-key="home"><a href="#/">로봇 매니퓰레이션 연구</a></li>
+    <li data-key="open-problems"><a href="#/open-problems">미해결 문제</a></li>
+    <li data-key="timeline"><a href="#/timeline">연표</a></li>`;
+  document.getElementById("nav-track").innerHTML = Object.keys(TRACKS).map(k=>
+    `<li data-key="t:${k}"><a href="#/track/${k}">${TRACKS[k].n}</a></li>`).join("");
+
+  const q = document.getElementById("q"), res = document.getElementById("results");
+  q.addEventListener("input", ()=>{
+    const term = q.value.trim().toLowerCase();
+    if(!term){ res.innerHTML=""; return; }
+    const hits = P.filter(p=>(p.n+" "+p.full+" "+p.aid+" "+p.lead).toLowerCase().includes(term)).slice(0,14);
+    res.innerHTML = hits.length
+      ? hits.map(p=>`<div><a href="#/paper/${p.s}">${esc(p.n)}</a></div>`).join("")
+      : `<div style="color:var(--muted)">일치하는 문서 없음</div>`;
+  });
+})();
+
+window.addEventListener("hashchange", function(){
+  const h = (location.hash || "").replace(/^#/,"") || "/";
+  const parts = h.split("#");
+  if(parts[0] !== CUR) navigate(parts[0], parts[1], false);
+});
+
+(function boot(){
+  const h = (location.hash || "").replace(/^#/,"") || "/";
+  const parts = h.split("#");
+  navigate(parts[0] || "/", parts[1], false);
+})();
+</script>
+</body>
+</html>
