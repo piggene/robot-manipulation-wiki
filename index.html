@@ -147,7 +147,8 @@ const TRACKS = {
   traj: {n:"궤적 최적화",     full:"Trajectory Optimization",    c:"var(--traj)"},
   mpc:  {n:"MPC",            full:"모델예측제어",                c:"var(--mpc)"},
   data: {n:"데이터·평가",     full:"데이터셋과 벤치마크",         c:"var(--data)"},
-  gen:  {n:"생성 모델 기초",   full:"생성 모델 기초 (확산 · flow)", c:"var(--gen)"}
+  gen:  {n:"생성 모델 기초",   full:"생성 모델 기초 (확산 · flow)", c:"var(--gen)"},
+  geo:  {n:"기하 · 등변",      full:"기하 · 등변 생성 모델 (SE(3))", c:"var(--geo)"}
 };
 
 // s=slug, n=표제, full=원제, org=주체, d=시점, aid=식별자, venue, key=주요문서
@@ -821,6 +822,215 @@ const P = [
   ["결과","ImageNet 256×256에서 FID 2.22, 512×512에서 2.48을 단일 순전파로 달성했다. 잠재 공간 없는 1스텝 생성 영역에서 첫 경쟁력 있는 결과다. 옵티마이저, 시간 샘플링 전략, 고해상도 확장에 대한 상세한 ablation을 함께 제공하며, 지각 손실을 추가하면 품질이 더 개선된다고 보고한다."],
   ["로봇 정책에의 함의","VLA의 action expert가 정확히 같은 구조적 선택에 놓여 있다. 액션 청크를 직접 예측할 것인가 속도장을 예측할 것인가, 그리고 몇 스텝에 생성할 것인가. pMF의 처방은 출력은 액션 다양체 위에 두고 손실만 속도 공간에서 정의하라는 것으로 번역될 수 있다. 다만 이 번역이 실제로 성립하는지는 아직 검증되지 않았으며, 여기서는 정리자의 관찰로만 적어 둔다."]],
  see:["jit","meanflow","imf","snapflow","pi0"]},
+{s:"consistency-models",t:"gen",n:"Consistency Models",full:"Consistency Models",org:"OpenAI (Song, Dhariwal, Chen, Sutskever)",d:"2023-03",aid:"arXiv:2303.01469",venue:"ICML 2023",
+ lead:"확산 ODE 궤적 위의 임의 지점을 같은 시작점으로 사상하도록 강제해, 1스텝 또는 소수 스텝 생성을 가능하게 한 계열의 출발점.",
+ body:[
+  ["핵심 아이디어 — 자기일관성","확률 흐름 ODE의 한 궤적 위에 있는 모든 점은 같은 데이터 샘플로 흘러간다. 그렇다면 궤적 위 어느 지점을 넣어도 같은 출력을 내는 함수 f를 학습하면, 잡음에서 곧바로 데이터로 가는 사상을 얻는다. 이 자기일관성 조건이 학습 목표가 된다."],
+  ["두 가지 학습 방식","증류(consistency distillation)는 사전학습된 확산 교사가 만든 궤적 위 인접 두 점의 출력을 일치시킨다. 처음부터 학습(consistency training)은 교사 없이 잡음 수준만 달리한 두 입력의 출력을 일치시킨다. 후자가 나중에 iCT, ECT, sCT로 발전하며 안정화되었고, sCT는 십억 파라미터 규모까지 확장되었다."],
+  ["로봇 적용","Consistency Policy(Prasad et al., RSS 2024)가 이를 시각운동 정책에 옮긴 첫 사례다. 다만 증류 기반이라 교사 모델의 능력에 상한이 묶인다는 한계가 이후 [[meanflow]] 계열의 동기가 되었다."],
+  ["한계","경계 조건 처리와 학습 불안정성이 오래 문제였고, 1스텝 샘플이 흐려지는 현상이 반복 보고되었다. [[shortcut-models]]와 [[meanflow]]가 각각 다른 방식으로 이를 우회한다."]],
+ see:["meanflow","shortcut-models","consistency-policy","mp1"]},
+
+{s:"shortcut-models",t:"gen",n:"Shortcut Models",full:"One Step Diffusion via Shortcut Models",org:"UC Berkeley (Frans, Hafner, Levine, Abbeel)",d:"2024-10",aid:"ICLR 2025",venue:"ICLR 2025",
+ lead:"잡음 수준뿐 아니라 스텝 크기까지 조건으로 받아, 하나의 가중치로 1스텝과 다단계 샘플링을 모두 지원하는 모델.",
+ body:[
+  ["핵심 아이디어","flow matching 모델은 무한소 스텝을 전제로 학습되므로 큰 스텝을 밟으면 오차가 커진다. Shortcut 모델은 스텝 크기 d를 추가 입력으로 받아 그 크기만큼 정확히 이동하는 방향을 학습한다. 큰 스텝의 목표는 작은 스텝 두 번을 이어붙인 결과로 자기부트스트랩한다."],
+  ["의의","증류 없이 단일 학습으로 1스텝과 다단계를 모두 얻는다. 로봇 정책 관점에서는 제어 예산에 따라 추론 비용을 실행 중에 조절할 수 있다는 뜻이며, 나중에 [[dfm]]이 Drifting 계열에서 같은 유연성을 복원하려 한 것과 문제의식이 같다."]],
+ see:["consistency-models","meanflow","dfm"]},
+
+{s:"pi-flow",t:"gen",n:"π-Flow",full:"π-Flow: Policy-Based Few-Step Generation via Imitation Distillation",org:"—",d:"2025-10",aid:"arXiv:2510.14974",venue:"arXiv 프리프린트",src:"abs",
+ lead:"소수 스텝 생성을 정책 학습으로 재정식화한 증류 기법.",
+ body:[
+  ["핵심 아이디어","학생 네트워크가 각 스텝에서 어떤 방향으로 갈지를 결정하는 정책으로 보고, 교사 궤적을 모방하도록 학습한다. 증류를 회귀가 아니라 모방학습 문제로 다시 쓴 셈이다."],
+  ["위치","DMD 계열의 분포 매칭 증류, 진행형 증류, 일관성 증류와 함께 소수 스텝 생성의 네 갈래 중 하나를 이룬다."]],
+ see:["consistency-models","meanflow","soflow"]},
+
+{s:"soflow",t:"gen",n:"SoFlow",full:"SoFlow: Solution Flow Models for One-Step Generative Modeling",org:"—",d:"2025-12",aid:"arXiv:2512.15657",venue:"arXiv 프리프린트",src:"abs",
+ lead:"flow matching에 solution-consistency 목적을 결합해 교사 없이 1스텝 생성을 학습한다.",
+ body:[
+  ["핵심 아이디어","ODE의 해(solution) 자체를 일관성 조건의 대상으로 삼는다. 임의 시점 전이를 다루도록 일관성 모델을 확장하는 흐름에 속하며, 연속 시간 동역학과의 정합을 개선한다."],
+  ["맥락","이 논문의 related work가 소수 스텝 생성 지형을 잘 정리한다. 증류 기반과 처음부터 학습 두 갈래로 나누고, 후자에 [[consistency-models]] 계열(iCT, ECT, sCT), [[shortcut-models]], [[meanflow]], IMM을 배치한다."]],
+ see:["meanflow","shortcut-models","consistency-models","drifting"]},
+
+{s:"drifting",t:"gen",n:"Drifting Models",full:"Generative Modeling via Drifting",org:"MIT · Harvard (Deng, He 외)",d:"2026-02",aid:"arXiv:2602.04770",venue:"arXiv 프리프린트",key:1,
+ lead:"반복 추론을 학습 시간으로 옮긴 새로운 생성 패러다임. 교사·증류·적대적 학습 없이 단일 순전파 생성을 달성했고, Diffusion Policy 벤치마크에서도 검증했다.",
+ body:[
+  ["문제 재정의","생성 모델링은 pushforward 분포가 데이터 분포와 일치하는 사상 f를 배우는 문제다. 확산과 flow matching은 이 pushforward를 추론 시간에 반복 수행한다. 즉 복잡한 사상을 여러 개의 쉬운 사상으로 분해하고 그 분해를 추론에서 되풀이한다. Drifting Models는 그 반복을 학습 시간으로 옮긴다."],
+  ["핵심 아이디어 — drifting field","생성 분포 q와 데이터 분포 p 사이에 커널 기반 drift 연산자를 정의한다. 이 장은 생성 샘플을 데이터 쪽으로 끌어당기고 서로에게서는 밀어낸다. 두 분포가 일치하면 장이 0이 되어 평형에 도달하며, 이 반대칭성이 수렴의 이론적 근거다. 학습 목표는 단순하다. 각 생성 샘플에 대해 drift 벡터를 계산하고, stop-gradient를 건 그 결과를 네트워크가 그대로 출력하도록 회귀시킨다. 생성 분포는 옵티마이저의 진행에 따라 학습 중에 진화한다."],
+  ["GAN과의 차이","단일 순전파 생성기라는 점은 GAN과 같지만 판별자가 없다. 적대적 최소최대 문제가 아니라 표준 경사하강 회귀이므로 학습이 안정적이다."],
+  ["이미지 결과","463M 파라미터 모델로 ImageNet 256×256에서 단일 NFE FID 1.54(잠재), 1.61(픽셀)을 기록했다. 250스텝 × CFG 2회를 쓰는 DiT-XL/2(2.27)와 SiT-XL/2(2.06)를 앞선 수치다."],
+  ["로봇 결과","이 논문이 특히 중요한 이유다. 실험 설계와 프로토콜을 Diffusion Policy(Chi et al., 2023)를 그대로 따랐고, DP의 핵심인 다단계 확산 생성기를 1스텝 Drifting Model로 교체했다. 특징 공간을 쓰지 않고 제어용 원시 표현 위에서 직접 drifting 손실을 계산했다. 결과는 100 NFE를 쓰는 SOTA Diffusion Policy와 대등하거나 상회다."],
+  ["한계와 후속","test-time scaling이 없다. 계산을 더 써도 품질을 올릴 수단이 구조적으로 없다는 뜻이며, [[dfm]]이 이를 flow matching과 연결해 복원한다. 이론 쪽에서는 [[drifting-score]]가 drifting을 score matching의 스펙트럼적 재해석으로 환원한다. 또한 암묵적 생성기라 밀도가 정의되지 않으므로, 로그확률이 필요한 RL 파인튜닝에는 별도의 접근이 필요하다."]],
+ see:["dfm","drifting-score","meanflow","jit","open-problems"]},
+
+{s:"drifting-score",t:"gen",n:"Drifting is Secretly Score Matching",full:"Generative Drifting is Secretly Score Matching: a Spectral Perspective",org:"—",d:"2026-03",aid:"arXiv:2603.09936",venue:"arXiv 프리프린트",src:"abs",
+ lead:"[[drifting]]이 기존 score 기반 형식론에서 벗어난 것처럼 보이지만 실은 score matching으로 환원된다는 것을 스펙트럼 관점에서 보인 이론 연구.",
+ body:[
+  ["논지","Drifting은 score나 속도장을 배우는 대신 커널 기반 drift 연산자를 규정하고, 생성기가 자신의 drift된 출력을 스스로 맞추도록 학습한다. 이 논문은 그럼에도 그 목적이 score matching과 등가임을 보인다. 가우시안 커널의 경우 변위장이 커널 밀도 추정의 로그밀도 그래디언트 차이로 쓰인다는 점이 연결 고리다."],
+  ["의의","새 패러다임이 기존 이론 도구와 단절되지 않았음을 뜻한다. 확산·flow에서 축적된 가중치 설계, 조건화, guidance 이론을 Drifting에 이식할 여지가 생긴다. 관련 연구로 Wasserstein 그래디언트 흐름 관점의 해석과 유한 입자 수렴률 분석(2605.22795)이 이어졌다."]],
+ see:["drifting","dfm"]},
+
+{s:"dfm",t:"gen",n:"Drift Flow Matching",full:"Drift Flow Matching",org:"—",d:"2026-05",aid:"arXiv:2605.17244",venue:"arXiv 프리프린트",src:"abs",
+ lead:"[[drifting]]의 1스텝 효율과 flow matching의 다단계 정제를 하나의 틀로 잇는다.",
+ body:[
+  ["문제","flow matching과 확산은 추론 계산을 늘리면 품질이 오르는 test-time scaling 성질을 갖는다. Drifting Models는 직접 생성 패러다임이라 이 유연성이 없다."],
+  ["핵심 아이디어","직접 수송 사상의 효율을 유지하면서, 원하면 여러 추론 스텝으로 결과를 정제할 수 있게 한다. 직접 생성과 반복 정제가 서로 배타적인 설계 선택이 아니라 하나의 틀 안의 양 끝점이 된다."],
+  ["로봇 관점","제어 주기에 여유가 있을 때는 스텝을 더 쓰고 급할 때는 1스텝으로 떨어뜨리는 운용이 가능해진다. [[shortcut-models]]가 flow matching 쪽에서 같은 유연성을 제공한 것과 대응된다."]],
+ see:["drifting","shortcut-models","meanflow"]},
+
+/* ───────── 기하 · 등변 생성 모델 ───────── */
+{s:"diffusion-edf",t:"geo",n:"Diffusion-EDF",full:"Diffusion-EDFs: Bi-equivariant Denoising Generative Modeling on SE(3) for Visual Robotic Manipulation",org:"KAIST · UC Berkeley (Ryu 외)",d:"2023-09",aid:"arXiv:2309.02685",venue:"CVPR 2024",
+ lead:"SE(3) 위에서 직접 디노이징 확산을 정의하고, 장면과 파지 대상 양쪽에 대한 이중 등변성을 구조로 보장한 초기 연구.",
+ body:[
+  ["핵심 아이디어","엔드이펙터 목표 자세는 SE(3)의 원소다. 이를 유클리드 벡터로 펼쳐 확산을 돌리면 회전의 다양체 구조가 깨지고, 장면이 회전했을 때 출력이 그에 맞게 따라 돌지 않는다. Diffusion-EDF는 SE(3) 위에서 확산 과정을 직접 정의하고 등변 서술자 필드로 조건화해, 회전·병진에 대한 등변성이 학습이 아니라 구조에서 나오도록 했다."],
+  ["이중 등변성","장면 전체를 움직였을 때와 잡을 물체만 움직였을 때 모두 목표 자세가 올바르게 변환된다. 데이터 증강으로 근사하는 대신 구조로 보장하므로 데이터 효율이 크게 개선된다."],
+  ["의의","5~10개 데모만으로 새 물체와 새 배치에 일반화하는 결과를 보였다. 등변성이 로봇 조작에서 데이터 효율의 지렛대라는 인식을 굳힌 연구다."]],
+ see:["equigraspflow","et-seed","equibot"]},
+
+{s:"equigraspflow",t:"geo",n:"EquiGraspFlow",full:"EquiGraspFlow: SE(3)-Equivariant 6-DoF Grasp Pose Generative Flows",org:"서울대 (Lim, Kim, Kim, Lee, Park)",d:"2024-09",aid:"CoRL 2024, PMLR 270:5067",venue:"CoRL 2024",key:1,
+ lead:"SE(3) 다양체 위의 조건부 분포를 학습하면서 SE(3) 등변성을 구조적으로 보장하는 flow 기반 6-DoF 파지 자세 생성 모델.",
+ body:[
+  ["문제","3차원 관측에서 6-DoF 파지 자세를 만드는 전통적 방법은 기하 휴리스틱에 의존해 일반화가 나쁘고 파지 선택지가 제한된다. 생성 모델 기반 방법이 등장했으나 SE(3) 등변성을 달성하지 못했다. 즉 물체가 회전하거나 이동하면 생성된 파지 자세가 그에 맞게 변환되지 않는다."],
+  ["핵심 아이디어","등변성을 데이터 증강으로 얻지 않고 네트워크 구조로 보장한다. 회전에 대해 올바르게 변환되는 특징만으로 벡터장을 구성하면, 학습된 흐름 자체가 등변이 되어 어떤 입력 자세에서도 일관된 파지 분포를 낸다. 흐름은 SE(3) 다양체 위에서 정의되므로 회전 성분이 다양체 밖으로 벗어나지 않는다."],
+  ["결과","파지 자세 분포를 정확히 학습하고 등변성을 실증했으며, 기존 파지 자세 생성 모델을 큰 폭으로 앞섰다. 코드가 공개되어 있다."],
+  ["계보에서의 위치","이 논문이 이후 SE(3) 등변 생성 모델의 표준 기준선이 되었다. [[graspmeanflow]]가 여기에 평균 속도를 도입해 소수 스텝으로 확장하고, [[equidexflow]]가 다지 손과 접촉력으로 확장한다."]],
+ see:["graspmeanflow","equidexflow","diffusion-edf","meanflow"]},
+
+{s:"et-seed",t:"geo",n:"ET-SEED",full:"ET-SEED: Efficient Trajectory-Level SE(3) Equivariant Diffusion Policy",org:"북경대 (Tie 외)",d:"2024-11",aid:"arXiv:2411.03990",venue:"ICLR 2025",
+ lead:"단일 자세가 아니라 궤적 전체 수준에서 SE(3) 등변성을 유지하는 확산 정책.",
+ body:[
+  ["핵심 아이디어","파지 자세 하나에 등변성을 거는 것과 궤적 전체에 거는 것은 다른 문제다. 궤적은 SE(3) 원소의 열이므로, 장면이 회전하면 모든 시점의 자세가 같은 회전으로 변환되어야 한다. ET-SEED는 이 궤적 수준 등변성을 확산 과정에 넣고, 등변 구조 덕에 필요한 디노이징 스텝 수를 줄인다."],
+  ["효율","등변성이 탐색 공간을 대칭군만큼 축소하므로 소수 데모로 학습되고 디노이징도 빨라진다. 저자들은 이를 효율성의 주된 근거로 든다."]],
+ see:["equibot","diffusion-edf","equigraspflow"]},
+
+{s:"equibot",t:"geo",n:"EquiBot",full:"EquiBot: SIM(3)-Equivariant Diffusion Policy for Generalizable and Data Efficient Learning",org:"Stanford (Yang, Cao, Deng, Antonova, Song, Bohg)",d:"2024-07",aid:"arXiv:2407.01479",venue:"CoRL 2024",
+ lead:"회전·병진에 더해 스케일까지 포함한 SIM(3) 등변성을 확산 정책에 적용했다.",
+ body:[
+  ["핵심 아이디어","SE(3)에 균등 스케일을 더한 SIM(3)으로 대칭군을 넓힌다. 같은 과제를 크기가 다른 물체나 다른 거리에서 수행할 때 정책이 그대로 전이된다는 것이 노림수다."],
+  ["결과","점군 입력 기반으로 새 물체, 새 배치, 새 스케일에 대해 소수 데모만으로 일반화하는 결과를 보고했다. 선행 EquivAct(ICRA 2024)가 강체 조작을 넘어 변형체까지 다룬 것과 같은 계열이다."]],
+ see:["et-seed","diffusion-edf","rfmp"]},
+
+{s:"rfmp",t:"geo",n:"Riemannian Flow Matching Policy",full:"Riemannian Flow Matching Policies for Robot Motion Learning",org:"Honda Research Institute EU (Braun 외)",d:"2024-03",aid:"arXiv:2403.10672",venue:"IROS 2024",src:"abs",
+ lead:"리만 다양체 위에서 flow matching을 정의해 로봇 모션을 학습·생성하는 정책.",
+ body:[
+  ["핵심 아이디어","로봇의 상태와 액션은 유클리드 공간이 아니라 회전군이나 그 곱공간 위에 있다. Chen과 Lipman의 Riemannian Flow Matching은 측지선이나 스펙트럼 premetric을 써서 조건부 flow matching을 다양체로 일반화하는데, 이 논문이 그것을 로봇 모션 학습에 적용한다."],
+  ["장점","시뮬레이션 없는 학습, 닫힌 형태 목적함수, 확산 대비 빠른 추론이라는 flow matching의 성질을 다양체 위에서 그대로 얻는다. 안정적 수렴 성질을 가진 벡터장을 설계할 수 있다는 점도 제어 관점에서 유용하다."]],
+ see:["equibot","graspmeanflow","meanflow"]},
+
+{s:"se3-poseflow",t:"geo",n:"SE(3)-PoseFlow",full:"SE(3)-PoseFlow: Estimating 6D Pose Distributions for Uncertainty-Aware Robotic Manipulation",org:"—",d:"2025-11",aid:"arXiv:2511.01501",venue:"arXiv 프리프린트",src:"abs",
+ lead:"물체의 6D 자세를 점추정이 아니라 SE(3) 위의 분포로 추정해, 불확실성을 인식하는 조작을 가능하게 한다.",
+ body:[
+  ["핵심 아이디어","대칭적이거나 가려진 물체는 자세가 원리적으로 다봉적이다. 점추정을 강요하면 여러 해의 평균이라는 무의미한 값이 나온다. SE(3) 위에서 flow matching으로 분포 자체를 학습하면 이 다봉성이 보존되고, 다운스트림 파지가 불확실성을 고려해 결정할 수 있다."],
+  ["위치","저자들은 SE(3) flow matching을 실제 6D 자세 추정에 적용한 첫 사례라고 기술하며, 기존 연구가 대체로 합성·시뮬레이션 환경에 머물렀다고 정리한다. 다양체 생성 모델을 인식 파이프라인 쪽에 붙인 사례라는 점에서 다른 문서들과 층위가 다르다."]],
+ see:["equigraspflow","rfmp","equidexflow"]},
+
+{s:"sh-equiv-flow",t:"geo",n:"Hybrid SE(3)-Equivariant Visuomotor Flow Policy",full:"Efficient Hybrid SE(3)-Equivariant Visuomotor Flow Policy via Spherical Harmonics for Robot Manipulation",org:"—",d:"2026-03",aid:"arXiv:2603.23227",venue:"arXiv 프리프린트",src:"abs",
+ lead:"구면 조화 함수를 이용해 등변성을 유지하면서 계산 비용을 낮춘 시각운동 flow 정책.",
+ body:[
+  ["핵심 아이디어","완전 등변 네트워크는 표현 이론에 기반한 텐서곱 연산 때문에 비싸다. 구면 조화 기반 하이브리드 구조로 등변 경로와 비등변 경로를 섞어, 필요한 곳에만 등변성을 유지하면서 처리량을 확보한다."],
+  ["맥락","등변성의 데이터 효율과 실시간 제어의 연산 예산이 충돌하는 지점을 다룬다. 미해결 문제 중 온보드 자원 제약과 맞닿아 있다."]],
+ see:["equibot","et-seed","graspmeanflow","open-problems"]},
+
+{s:"equidexflow",t:"geo",n:"EquiDexFlow",full:"EquiDexFlow: Contact-Grounded SE(3)-Equivariant Dexterous Grasp Generative Flows",org:"Univ. of Maryland (Enwerem 외)",d:"2026-06",aid:"arXiv:2606.12728",venue:"arXiv 프리프린트",key:1,
+ lead:"손목 자세, 관절각, 손끝 접촉점, 표면 법선, 접촉력을 함께 예측하면서 물리적 타당성을 손실이 아니라 구조로 강제하는 SE(3) 등변 flow matching 모델.",
+ body:[
+  ["문제","기존의 학습 기반 다지 파지 생성기는 접촉력을 다운스트림 검증 단계로 미룬다. 그 결과 기구학적으로 그럴듯한 자세가 물리적으로 안정한 파지의 조건을 위반해도 생성 단계에서는 걸러지지 않는다."],
+  ["핵심 아이디어 — 벌점이 아니라 사영","접촉점을 물체 표면 위로 사영하고 접촉력을 Coulomb 마찰원뿔 안으로 사영하는 것을 아키텍처에 내장한다. 그러면 접촉점의 표면 위 배치와 마찰 조건 만족이 손실 항의 절충 대상이 아니라 항상 성립하는 성질이 된다. 제약을 소프트하게 다루는 대부분의 생성 모델과 갈리는 지점이다."],
+  ["등변성 검증","점군에서 손목 자세, 관절각, 손끝 접촉, 법선, 힘을 동시에 예측하며 끝단까지의 SE(3) 등변성을 증명하고, 200회 회전에 대해 실증했다. 손목 잔차 0.04° 미만, 관절 편차 정확히 0이다."],
+  ["실기","리타게팅된 파지로 6개 시험 물체 전부에서 개루프 pick-and-hold를 성공했고, 비대칭 물체는 표준 자세와 120° 회전 자세 양쪽에서 성공했다."],
+  ["의의","미해결 문제 중 안전 보증 항목과 연결된다. 제약을 손실로 걸면 통계적 개선이지만 사영으로 걸면 보증이 된다는 것을 다지 파지에서 보인 사례다."]],
+ see:["equigraspflow","graspmeanflow","ftp1","open-problems"]},
+
+{s:"graspmeanflow",t:"geo",n:"GraspMeanFlow",full:"GraspMeanFlow: SE(3)-Equivariant MeanFlow for Few-Step 6-DoF Grasp Generation",org:"—",d:"2026-08",aid:"arXiv:2608.03295",venue:"arXiv 프리프린트",key:1,
+ lead:"[[meanflow]]의 평균 속도를 SE(3) Lie 군 구조 위에서 전개해, 등변성을 유지한 채 소수 스텝 파지 생성을 달성했다.",
+ body:[
+  ["핵심 아이디어 — 평균 속도의 닫힌 형태","SE(3)의 닫힌 형태 Lie 군 구조를 이용해 MeanFlow를 다양체로 옮긴다. 공간 프레임의 각속도와 선속도를 Lie 대수에서 적분하는데, 여기서 쓰는 측지선 보간에서는 평균 속도가 Lie 로그로 닫힌 형태를 갖는다. 그래서 그것을 그대로 학습 목표로 삼을 수 있다. 유클리드 MeanFlow가 야코비안-벡터곱으로 항등식을 계산하는 것과 달리, 여기서는 목표가 해석적으로 주어진다."],
+  ["프레임 선택이 등변성을 결정한다","이 논문이 특히 강조하는 대목이다. 같은 SE(3) 평균 속도 정식화를 단백질 백본 생성에 적용한 Bai et al.(2026)은 물체 프레임 Ṙ_t = R_t[ω_t]를 쓰는 반면, 여기서는 공간 프레임을 쓴다. 등변성 보장이 공간 프레임을 요구하기 때문이다. 다양체 위 생성 모델에서 프레임 규약이 단순한 표기 문제가 아니라는 것을 보여주는 사례다."],
+  ["관련 연구와의 관계","일반 리만 다양체로 MeanFlow를 확장한 2026년 연구가 있으나 합성 기하에서만 평가되었다. 이 논문은 SE(3)라는 구체적 Lie 군에 특화해 닫힌 형태를 얻는 쪽을 택했다. [[equigraspflow]]를 여러 절에서 기준선이자 이론적 출발점으로 인용한다."],
+  ["로봇 관점의 의미","등변성과 소수 스텝 추론이라는 두 요구가 지금까지 별도로 추구되어 왔는데, 이 논문이 둘을 한 정식화 안에서 만족시킨다. 파지 자세 생성이 제어 루프 안으로 들어갈 수 있는 지연 영역에 진입한다는 뜻이다."]],
+ see:["equigraspflow","meanflow","equidexflow","rfmp"]},
+
+{s:"consistency-policy",t:"vla",n:"Consistency Policy",full:"Consistency Policy: Accelerated Visuomotor Policies via Consistency Distillation",org:"Stanford (Prasad, Lin, Wu, Zhou, Bohg)",d:"2024-05",aid:"arXiv:2405.07503",venue:"RSS 2024",
+ lead:"[[consistency-models]]를 시각운동 정책에 옮겨, 확산 정책의 다단계 디노이징을 1~3스텝으로 줄인 초기 사례.",
+ body:[
+  ["핵심 아이디어","사전학습된 확산 정책을 교사로 두고 일관성 증류를 수행한다. 같은 ODE 궤적 위의 인접 지점들이 같은 액션 청크를 내도록 강제하면, 잡음에서 곧바로 액션으로 가는 사상이 학습된다."],
+  ["한계","증류 기반이라 성능이 교사 정책의 능력에 상한으로 묶인다. 이 지적이 [[mp1]]과 [[maniflow]] 같은 증류 없는 접근의 직접적 동기가 되었다."]],
+ see:["mp1","flowpolicy","maniflow","consistency-models"]},
+
+{s:"flowpolicy",t:"vla",n:"FlowPolicy",full:"FlowPolicy: Enabling Fast and Robust 3D Flow-based Policy via Consistency Flow Matching",org:"—",d:"2024-12",aid:"AAAI 2025",venue:"AAAI 2025",src:"abs",
+ lead:"consistency flow matching으로 3D 점군 기반 정책의 단일 스텝 추론을 노린 연구.",
+ body:[
+  ["핵심 아이디어","속도장의 자기일관성을 정규화해 흐름을 직선화한다. 흐름이 직선에 가까울수록 큰 스텝을 밟아도 오차가 작아지므로 소수 스텝 추론이 가능해진다."],
+  ["한계","명시적 consistency 제약을 출력에 걸어야 하며, 이 구조적 제약이 표현력을 제한한다는 것이 [[mp1]]의 비판점이다."]],
+ see:["mp1","consistency-policy","maniflow"]},
+
+{s:"maniflow",t:"vla",n:"ManiFlow",full:"ManiFlow: A General Robot Manipulation Policy via Consistency Flow Training",org:"—",d:"2025-09",aid:"CoRL 2025",venue:"CoRL 2025",src:"abs",
+ lead:"일관성 flow 학습으로 범용 조작 정책의 소수 스텝 추론을 달성한 연구.",
+ body:[
+  ["위치","[[consistency-policy]], [[flowpolicy]]와 함께 확산·flow 정책의 추론 지연을 공략하는 계열에 속하며, [[snapflow]]와 [[mp1]]이 각각 증류와 평균 속도 쪽에서 이를 잇는다."]],
+ see:["mp1","snapflow","flowpolicy"]},
+
+{s:"rtc",t:"vla",n:"Real-Time Chunking (RTC)",full:"Real-Time Execution of Action Chunking Flow Policies",org:"Physical Intelligence · UC Berkeley (Black, Galliker, Levine)",d:"2025-06",aid:"arXiv:2506.07339",venue:"NeurIPS 2025",key:1,
+ lead:"액션 청킹 정책의 청크 경계 문제를 인페인팅으로 재정식화한 추론 시간 알고리즘. 확산·flow 기반 VLA 어디에나 재학습 없이 붙는다.",
+ body:[
+  ["문제 정식화","관측 o_t를 받고 액션 청크 A_t가 나오기까지의 지연을 제어 주기 수로 환산해 추론 지연 d로 정의한다. 동기 실행은 이 d 동안 로봇을 멈추게 하고, 순진한 비동기 실행은 청크 경계에서 이전 청크와 새 청크가 불연속하게 이어져 분포 밖의 급격한 움직임을 만든다. 실행 지평 s를 두려면 s−d 시점에 추론을 시작해야 하고, d ≤ H−s이면 액션은 항상 준비되지만 그 사이에 무슨 일이 일어날지 정책은 모른 채로 생성해야 한다."],
+  ["핵심 아이디어 — 인페인팅","다음 청크를 생성할 때, 추론이 끝나기 전에 이미 실행이 확정된 앞부분 a_0:d−1은 guidance 가중치 1로 완전히 얼린다. 이전 청크가 남아 있지만 갱신될 수 있는 중간 구간은 지수적으로 감소하는 가중치로 부드럽게 유도한다. 이전 청크 너머의 마지막 s개는 자유롭게 새로 생성한다. 확산·flow의 인페인팅 기법을 시간축에 그대로 적용한 셈이다."],
+  ["설계 특성","학습 레시피를 전혀 바꾸지 않는다. 이미 배치된 [[pi05]]나 [[pi07]] 같은 모델에 즉시 얹을 수 있다는 뜻이며, 실행 지평 s가 d ≤ s ≤ H−d 범위의 하이퍼파라미터다."],
+  ["평가","기존 시뮬레이션 벤치마크가 준정적이고 유사 개루프 추론만으로 이미 포화되었다는 지적과 함께, Kinetix 시뮬레이터 기반의 동적 조작·이동 12개 과제 벤치마크를 새로 만들었다. 실기는 양팔 조작 6개 과제로 평가했고, 성냥 켜기처럼 정밀한 과제를 상당한 지연 조건에서도 높은 성공률로 수행했다."],
+  ["1스텝 생성과의 관계","대체재가 아니라 보완재다. [[mp1]]이나 [[drifting]] 같은 1-NFE 접근이 지연 자체를 줄이는 반면, RTC는 남은 지연을 실행 수준에서 흡수한다."]],
+ see:["pi05","pi07","mp1","snapflow","drifting"]},
+
+{s:"mp1",t:"vla",n:"MP1",full:"MP1: MeanFlow Tames Policy Learning in 1-step for Robotic Manipulation",org:"북경대 (Sheng, Wang, Li, Liu)",d:"2025-07",aid:"arXiv:2507.10543",venue:"AAAI 2026, 40(22):18532",key:1,
+ lead:"[[meanflow]] 패러다임을 로봇 학습에 처음 적용해, 증류도 consistency 제약도 없이 1-NFE 액션 생성을 달성했다.",
+ body:[
+  ["문제","생성 정책은 근본적 상충에 놓여 있다. 확산 정책은 반복 샘플링이 느리고, 빠른 flow 기반 방법은 명시적 consistency 손실 같은 구조적 제약에 의존한다. 증류 기반 접근([[consistency-policy]])은 교사 능력에 상한이 묶인다."],
+  ["핵심 아이디어","MeanFlow identity로 구간 평균 속도를 직접 학습한다. 정의상 한 번의 순전파가 잡음에서 액션 청크까지의 변위 전체를 주므로 추가 consistency 제약이 필요 없고, 추론 시 ODE 솔버의 수치 오차가 아예 생기지 않아 궤적이 더 정확해진다. 입력은 3D 점군과 로봇 상태다."],
+  ["CFG 유지","1-NFE를 유지하면서 classifier-free guidance를 넣어 궤적 조종 가능성을 확보했다. 구조적 제약을 다시 들이지 않고 조건 강도를 조절할 수 있다는 것이 설계상의 이점이다."],
+  ["Dispersive Loss","서로 다른 상태의 잠재 임베딩을 밀어내는 경량 정규화를 추가했다. 추론 시간에 영향을 주지 않으면서 저데이터 조건의 일반화를 개선한다."],
+  ["결과","Adroit과 Meta-World를 합친 37개 과제에서 평균 성공률 78.9%, 추론 지연 6.8ms. 확산 정책이 요구하는 10~20스텝과 비교된다. 실기 5개 과제는 각 20개 데모, horizon 16, 관측 stride 2의 통일 조건에서 성공률과 평균 완료 시간 모두 최고를 기록했다."],
+  ["후속","1스텝 생성이 중간 표현을 붕괴시키는 경향을 지적하고 dispersive 정규화를 MeanFlow에 본격 적용한 [[dispersive-mfpo]]가 이어진다."]],
+ see:["meanflow","dispersive-mfpo","consistency-policy","rtc","snapflow"]},
+
+{s:"dispersive-mfpo",t:"vla",n:"Dispersive MeanFlow Policy Optimization",full:"One Step Is Enough: Dispersive MeanFlow Policy Optimization",org:"—",d:"2026-01",aid:"arXiv:2601.20701",venue:"arXiv 프리프린트",src:"abs",
+ lead:"증류 없는 1스텝 정책에서 나타나는 표현 붕괴를 dispersive 정규화로 다룬 [[mp1]]의 후속.",
+ body:[
+  ["문제","1스텝 생성은 중간 표현을 붕괴시키는 경향이 있다. 다단계 확산에서는 dispersive 정규화가 표현 품질 개선에 쓰여 왔지만, 증류 없는 1스텝 정책에 적용된 사례가 없었다."],
+  ["기여","MeanFlow에 dispersive 정규화를 적용한 첫 연구라고 밝히며, 안정적 1스텝 생성을 목표로 한다. [[consistency-policy]]와 1-DP 같은 증류 기반 방법이 교사 능력에 묶이는 반면 이 계열은 그 상한이 없다는 것이 계열의 논거다."]],
+ see:["mp1","meanflow","drifting"]},
+
+{s:"discrete-diffusion-vla",t:"vla",n:"Discrete Diffusion VLA",full:"Discrete Diffusion VLA: Bringing Discrete Diffusion to Action Decoding in Vision-Language-Action Policies",org:"—",d:"2025-08",aid:"arXiv:2508.20072",venue:"ICML 2026, PMLR 306",key:1,
+ lead:"이산 액션 토큰을 유지하되 자기회귀를 버리고, 병렬 디코딩과 re-masking을 쓰는 이산 확산으로 액션을 생성한다.",
+ body:[
+  ["문제 진단","현행 VLA는 두 갈래다. GPT식 자기회귀로 이산 액션 토큰을 순차 예측하거나([[openvla]], π0-FAST), VLM의 잠재 토큰을 MLP나 연속 확산 헤드로 액션에 사상한다([[pi0]]). 연속 확산 쪽이 더 정교한 동작을 표현하지만 VLM 백본과 분리되어 있다. Transfusion식으로 한 아키텍처에 통합해도 확산 고유의 학습 목표가 남아 VLM 성분과 그래디언트 신호가 경쟁하고, 그 결과 사전학습된 시각-언어 능력이 저하된다는 것이 이 논문이 지목하는 핵심 문제다."],
+  ["핵심 아이디어","액션 디코딩을 이산 확산으로 바꾼다. 자기회귀처럼 순차적이지 않고 BERT식 병렬 디코딩처럼 한 번에 끝나지도 않는다. 마스킹된 액션 토큰을 병렬로 예측하되, 확신이 낮은 토큰을 다시 마스킹해 여러 라운드에 걸쳐 재예측한다. 쉬운 요소가 먼저 확정되고 어려운 요소가 나중에 정교해지는 순서가 자연히 생긴다."],
+  ["설계상의 이점","이산 토큰을 쓰므로 손실이 VLM과 동일한 크로스엔트로피로 통일된다. 별도의 확산 목적함수가 없으니 그래디언트 경쟁이 사라지고, [[knowledge-insulation]]이 절연으로 푼 문제를 목적함수 통합으로 푸는 접근이 된다."],
+  ["평가","LIBERO(Franka Panda), SimplerEnv-Fractal(Google Robot), WidowX 팔에서 평가했고, AgileX Cobot Magic 플랫폼으로 실기 검증 두 건을 수행했다."],
+  ["대비되는 흐름","같은 시기 [[hiflow]]는 정반대 방향으로 간다. 로봇 액션은 원래 저차원 연속 벡터이므로 이산 토크나이저 자체가 불필요하다는 주장이다. 예측 대상을 이산으로 둘 것인가 연속으로 둘 것인가는 [[jit]]과 [[pmf]]가 이미지 쪽에서 제기한 질문과 같은 축에 있다."]],
+ see:["hiflow","fast","knowledge-insulation","masked-gen-policy","jit"]},
+
+{s:"masked-gen-policy",t:"vla",n:"Masked Generative Policy",full:"Masked Generative Policy for Robotic Control",org:"—",d:"2025-12",aid:"arXiv:2512.09101",venue:"arXiv 프리프린트",src:"abs",
+ lead:"마스킹 기반 생성으로 확산의 다단계 비용과 자기회귀의 시퀀스 길이 의존을 함께 피하려는 정책.",
+ body:[
+  ["문제 정리","저자들의 진단이 이 계열의 상충을 잘 요약한다. 확산 기반은 액션마다 여러 디노이징 스텝이 필요해 느리고, [[consistency-policy]]와 [[flowpolicy]]가 이를 줄였지만 추가 증류를 요구하거나 샘플 품질을 희생한다. 자기회귀 정책은 순전파당 토큰 하나를 내므로 지연이 시퀀스 길이에 비례하고, 메모리가 없어 장기 일관성도 약하다."],
+  ["핵심 아이디어","마스킹된 토큰을 병렬로 복원하는 생성 절차를 쓴다. VQ-BeT, QueST, PRISE 같은 이산 표현 계열의 흐름 위에 있으면서 디코딩 방식을 바꾼 것이다."]],
+ see:["discrete-diffusion-vla","carp","hiflow"]},
+
+{s:"carp",t:"vla",n:"CARP",full:"CARP: Visuomotor Policy Learning via Coarse-to-Fine Autoregressive Prediction",org:"—",d:"2024-12",aid:"arXiv:2412.06782",venue:"ICCV 2025",src:"abs",
+ lead:"거친 해상도에서 세밀한 해상도로 진행하는 자기회귀로 액션을 생성해, 단일 패스 효율과 전역 궤적 일관성을 함께 노린다.",
+ body:[
+  ["핵심 아이디어","토큰을 시간 순으로 하나씩 내는 대신, 궤적 전체를 낮은 해상도에서 먼저 만들고 점차 정교화한다. 이미지 생성의 next-scale prediction을 액션 시퀀스에 옮긴 것이다. 자기회귀의 순차성이 시간축이 아니라 해상도축으로 옮겨가므로 지연이 시퀀스 길이에 비례하지 않는다."],
+  ["비교 대상","BET(이산화 자기회귀 + 오프셋 보정), IBC(에너지 기반 암묵 정책), Diffusion Policy(DDPM 100스텝, CNN·트랜스포머 두 변형)와 비교했다."],
+  ["후속","[[hiflow]]가 이 coarse-to-fine 구조를 유지하되 이산 토크나이저를 제거한다."]],
+ see:["hiflow","masked-gen-policy","discrete-diffusion-vla"]},
+
+{s:"hiflow",t:"vla",n:"HiFlow",full:"HiFlow: Tokenization-Free Scale-Wise Autoregressive Policy Learning via Flow Matching",org:"게이오대 · NII (Yashima, Seno, Kurita, Oda, Sugiura)",d:"2026-03",aid:"arXiv:2603.27281",venue:"arXiv 프리프린트",key:1,
+ lead:"coarse-to-fine 자기회귀 정책에서 이산 액션 토크나이저를 제거하고 flow matching으로 대체한다. 로봇 액션은 원래 저차원 연속 벡터라는 것이 논거다.",
+ body:[
+  ["문제 제기","coarse-to-fine 자기회귀 모델링이 자기회귀의 추론 효율과 확산 정책의 전역 궤적 일관성을 결합하며 유망한 결과를 냈다. 그런데 기존 접근은 연속 액션 시퀀스를 코드북 인덱스로 사상하는 이산 액션 토크나이저에 의존하는데, 이 설계는 고차원 픽셀 데이터에 학습된 압축이 필요했던 이미지 생성에서 물려받은 것이다."],
+  ["핵심 논거","로봇 액션은 본질적으로 저차원 연속 벡터다. 그런 데이터에 토크나이저를 붙이면 불필요한 양자화 오차와 다단계 학습 파이프라인만 들어온다. 이미지에서 정당했던 설계가 액션에서는 정당하지 않다는 것이다."],
+  ["방법","코드북 없이 스케일 단위 자기회귀를 flow matching으로 구현한다. 각 스케일에서 연속 액션을 직접 생성하므로 토크나이저 학습 단계가 사라지고 파이프라인이 단일 단계가 된다."],
+  ["계보","[[fast]]와 VQ-BeT, QueST, PRISE 같은 이산 표현 계열에 대한 정면 반론이다. 방향은 [[jit]]이 이미지에서 제기한 논리와 같다. 예측 대상을 데이터가 실제로 놓인 저차원 구조에 맞추라는 것이다. 같은 시기 [[discrete-diffusion-vla]]는 정반대로 이산을 유지하되 디코딩 방식을 바꾸는 쪽을 택했다."]],
+ see:["carp","fast","discrete-diffusion-vla","jit","pmf"]},
 ];
 
 /* 미해결 문제 */
@@ -960,7 +1170,8 @@ function pageMain(){
     <li><a href="#s3">계열별 연구 동향</a>
       <ol><li><a href="#s3-1">VLA</a></li><li><a href="#s3-2">파운데이션 모델과 월드 모델</a></li>
       <li><a href="#s3-3">궤적 최적화</a></li><li><a href="#s3-4">모델예측제어</a></li>
-      <li><a href="#s3-5">생성 모델 기초</a></li></ol></li>
+      <li><a href="#s3-5">생성 모델 기초</a></li>
+      <li><a href="#s3-6">기하 · 등변 생성 모델</a></li></ol></li>
     <li><a href="#s4">데이터셋과 평가</a></li>
     <li><a href="#s5">미해결 문제</a></li>
     <li><a href="#s6">계열 간 관계</a></li>
@@ -977,7 +1188,7 @@ function pageMain(){
   const body = `
   ${ib}
   <p class="hat">이 문서는 로봇 매니퓰레이션 연구를 다룬다. 개별 논문은 각 문서를 참조한다. 전체 목록은 ${wl("[[list|논문 목록]]")}에 있다.</p>
-  <p><b>로봇 매니퓰레이션 연구</b>는 로봇이 물체를 잡고 옮기고 조립하고 변형시키는 능력을 다루는 로보틱스의 하위 분야다. 2023년 이후 이 분야는 네 갈래의 연구 전통이 서로 다른 시간 스케일과 서로 다른 정보를 다루며 병행 발전해 왔다. 시각과 언어로부터 액션을 생성하는 <a href="#/track/vla">VLA</a>, 물리 동역학을 함께 예측하는 <a href="#/track/rfm">파운데이션 모델과 월드 모델</a>, 제약을 명시적으로 만족시키는 <a href="#/track/traj">궤적 최적화</a>, 매 제어 주기마다 최적화를 다시 푸는 <a href="#/track/mpc">모델예측제어</a>, 그리고 이들이 공통으로 딛고 선 <a href="#/track/gen">생성 모델 기초</a>다.</p>
+  <p><b>로봇 매니퓰레이션 연구</b>는 로봇이 물체를 잡고 옮기고 조립하고 변형시키는 능력을 다루는 로보틱스의 하위 분야다. 2023년 이후 이 분야는 네 갈래의 연구 전통이 서로 다른 시간 스케일과 서로 다른 정보를 다루며 병행 발전해 왔다. 시각과 언어로부터 액션을 생성하는 <a href="#/track/vla">VLA</a>, 물리 동역학을 함께 예측하는 <a href="#/track/rfm">파운데이션 모델과 월드 모델</a>, 제약을 명시적으로 만족시키는 <a href="#/track/traj">궤적 최적화</a>, 매 제어 주기마다 최적화를 다시 푸는 <a href="#/track/mpc">모델예측제어</a>, 이들이 공통으로 딛고 선 <a href="#/track/gen">생성 모델 기초</a>, 그리고 로봇의 상태 공간이 갖는 구조를 반영하는 <a href="#/track/geo">기하 · 등변 생성 모델</a>이다.</p>
   <p>이 위키는 2023년 6월부터 2026년 8월까지의 주요 문헌 ${P.length}편을 계보 중심으로 정리하고, 각 논문이 스스로 명시한 한계와 벤치마크 논문이 실측으로 드러낸 실패 지점을 근거로 미해결 영역 ${PROBS.length}개를 식별한다.</p>
   ${toc}
 
@@ -1016,9 +1227,14 @@ function pageMain(){
   ${tbl("mpc")}
 
   <h3 id="s3-5">3.5 생성 모델 기초</h3>
-  <p>VLA의 action expert와 확산 정책이 그대로 물려받는 층이다. 2025년 말 이후 이 분야에서 두 가지 전제가 함께 흔들렸다. 하나는 잡음이나 속도 같은 잡음 섞인 양을 예측 대상으로 삼는 관행이고(${wl("[[jit]]")}), 다른 하나는 다단계 샘플링이다(${wl("[[meanflow]]")}). ${wl("[[pmf]]")}가 둘을 동시에 걷어내면서 출력 공간과 손실 공간을 분리하라는 처방을 내놓았다.</p>
-  <p>매니퓰레이션 쪽과의 접점은 직접적이다. ${wl("[[pi0]]")} 이후 대부분의 VLA가 flow matching으로 액션 청크를 생성하므로, 예측 대상을 무엇으로 둘 것인가와 몇 스텝에 생성할 것인가는 같은 질문이다. ${wl("[[snapflow]]")} 같은 증류 계열이 후자를 다루고 있으나, 전자에 해당하는 논의가 로봇 액션 공간에서 검증된 사례는 아직 없다.</p>
+  <p>VLA의 action expert와 확산 정책이 그대로 물려받는 층이다. 2025년 말 이후 이 분야에서 세 가지 전제가 함께 흔들렸다. 하나는 잡음이나 속도 같은 잡음 섞인 양을 예측 대상으로 삼는 관행이고(${wl("[[jit]]")}), 다른 하나는 다단계 샘플링이다(${wl("[[meanflow]]")}). ${wl("[[pmf]]")}가 둘을 동시에 걷어내면서 출력 공간과 손실 공간을 분리하라는 처방을 내놓았다. 세 번째는 반복 추론이라는 절차 자체로, ${wl("[[drifting]]")}이 그것을 학습 시간으로 옮겼다.</p>
+  <p>매니퓰레이션 쪽과의 접점은 직접적이다. ${wl("[[pi0]]")} 이후 대부분의 VLA가 flow matching으로 액션 청크를 생성하므로, 예측 대상을 무엇으로 둘 것인가와 몇 스텝에 생성할 것인가는 같은 질문이다. ${wl("[[snapflow]]")}, ${wl("[[mp1]]")}, ${wl("[[dispersive-mfpo]]")}가 후자를 다루고, ${wl("[[hiflow]]")}와 ${wl("[[discrete-diffusion-vla]]")}가 전자를 서로 반대 방향에서 공략한다. ${wl("[[drifting]]")}은 논문 자체가 Diffusion Policy 프로토콜로 1-NFE 결과를 보고했다.</p>
   ${tbl("gen")}
+
+  <h3 id="s3-6">3.6 기하 · 등변 생성 모델</h3>
+  <p>로봇의 상태와 액션은 유클리드 공간이 아니라 SE(3)나 그 곱공간 위에 놓인다. 이를 벡터로 펼쳐 생성 모델을 돌리면 회전의 다양체 구조가 깨지고, 장면이 회전했을 때 출력이 그에 맞게 따라 돌지 않는다. ${wl("[[diffusion-edf]]")}와 ${wl("[[equigraspflow]]")}가 등변성을 데이터 증강이 아니라 네트워크 구조로 보장하는 노선을 세웠고, ${wl("[[et-seed]]")}가 궤적 수준으로, ${wl("[[equibot]]")}이 스케일을 포함한 SIM(3)으로 확장했다.</p>
+  <p>2026년의 움직임은 두 갈래다. 하나는 등변성과 소수 스텝 추론을 함께 만족시키려는 시도로 ${wl("[[graspmeanflow]]")}가 SE(3) Lie 군 위에서 평균 속도의 닫힌 형태를 얻었고, 다른 하나는 물리 제약을 손실이 아니라 구조로 강제하는 방향으로 ${wl("[[equidexflow]]")}가 접촉점 표면 사영과 마찰원뿔 사영을 아키텍처에 내장했다. 후자는 미해결 문제 중 안전 보증 항목과 직접 연결된다.</p>
+  ${tbl("geo")}
 
   <h2 id="s4">4 데이터셋과 평가</h2>
   <p>데이터 쪽에서는 ${wl("[[oxe]]")}와 ${wl("[[droid]]")}에 이어 ${wl("[[agibot-go1]]")}이 규모를 한 자릿수 끌어올렸고, 2026년에는 1인칭 인간 영상이 주요 사전학습 소스로 부상했다. ${wl("[[egoscale]]")}과 ${wl("[[humanscale]]")}이 각각 로그-선형 스케일링 법칙을 보고했으며, 후자는 동일 데이터량 조건에서 인간 영상이 원격조작 실로봇 데이터를 앞섰다고 주장한다.</p>
