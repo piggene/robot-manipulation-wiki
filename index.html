@@ -568,7 +568,7 @@ const P = [
   ["의의","이산화 불변성을 확보하면 하나의 모델로 계획 해상도를 자유롭게 바꿀 수 있다. 궤적을 함수로 보는 관점은 [[curobov2]]의 B-스플라인 파라미터화와 문제의식이 겹친다."]],
  see:["mpd","flowmp","curobov2"]},
 /* ───────── MPC ───────── */
-{s:"cimpc-quad",t:"mpc",n:"CI-MPC (사족)",full:"Contact-Implicit MPC: Controlling Diverse Quadruped Motions Without Pre-Planned Contact Modes or Trajectories",org:"KAIST",d:"2023-12",aid:"arXiv:2312.08961",venue:"IJRR",
+{s:"cimpc-quad",t:"mpc",n:"CI-MPC (Quadruped)",full:"Contact-Implicit MPC: Controlling Diverse Quadruped Motions Without Pre-Planned Contact Modes or Trajectories",org:"KAIST",d:"2023-12",aid:"arXiv:2312.08961",venue:"IJRR",
  lead:"사전에 계획된 접촉 모드나 궤적 없이 다양한 사족 동작을 제어한다.",
  body:[
   ["핵심 아이디어","보행 제어의 통상적 접근은 접촉 스케줄을 사람이 미리 정하는 것이다. 어느 발이 언제 땅에 닿을지를 고정하면 문제가 매끄러워져 풀기 쉬워지지만, 정해둔 보행 패턴 밖으로는 나갈 수 없다. 접촉 암시적 정식화는 접촉 여부 자체를 최적화 변수로 남겨두어 제어기가 상황에 맞는 접촉 순서를 스스로 만들어내게 한다."],
@@ -580,7 +580,7 @@ const P = [
  body:[
   ["문제","접촉이 포함된 궤적 최적화는 상보성 제약 때문에 비평활하고 조건수가 나쁘다. 표준 솔버는 이런 문제에서 수렴이 느리거나 실패하고, 제어 주기 안에 해를 못 내면 MPC가 성립하지 않는다."],
   ["핵심 아이디어","상보성 제약을 완화된 형태로 다루면서 그 완화 정도를 최적화 과정에서 점진적으로 조이고, 접촉이 만드는 비평활 지점에서도 안정적인 그래디언트를 얻는 맞춤 솔버를 설계한다. 문제 구조를 이용해 선형계를 효율적으로 푸는 것이 속도의 핵심이다."],
-  ["계열의 보고 성능","24자유도 휴머노이드 50Hz, 양팔 100Hz([[fast-cimpc]]와 함께 인용되는 Kurtz 등의 역동역학 궤적 최적화, IJRR 45(1)), 평면 밀기 루프당 1초 이하([[push-anything]]) 수준이 문헌에 보고되어 있다. 해석적 1차원 사영, 병렬 MIQP 해석, 합의 정식화, 신뢰영역·도그레그 솔버가 각각 기여했다."]],
+  ["계열의 보고 성능","24자유도 휴머노이드 50Hz, 양팔 100Hz(Kurtz 등의 Inverse Dynamics Trajectory Optimization, IJRR 45(1)), 평면 밀기 루프당 1초 이하([[push-anything]]) 수준이 문헌에 보고되어 있다. 해석적 1차원 사영, 병렬 MIQP 해석, 합의 정식화, 신뢰영역·도그레그 솔버가 각각 기여했다."]],
  see:["cimpc-global","cimpc-quad","push-anything"]},
 
 {s:"sampling-mpc-phys",t:"mpc",n:"Sampling-based MPC with parallel physics",full:"Sampling-based Model Predictive Control Leveraging Parallelizable Physics Simulations",org:"TU Delft",d:"2025-01",aid:"2025 프리프린트",venue:"프리프린트",src:"abs",
@@ -591,7 +591,7 @@ const P = [
   ["한계","시뮬레이터의 접촉 파라미터가 실제와 다르면 그 오차가 그대로 제어 성능에 반영된다. [[parallel-smpc-real]]이 이 문제를 실기에서 정량화한다."]],
  see:["parallel-smpc-real","feedback-mppi"]},
 
-{s:"cimpc-global",t:"mpc",n:"전역 근사 CI-MPC",full:"Approximating Global Contact-Implicit MPC via Sampling and Local Complementarity",org:"UPenn",d:"2025-05",aid:"arXiv:2505.13350",venue:"IEEE RA-L 10(11):12117–12124",key:1,
+{s:"cimpc-global",t:"mpc",n:"Global CI-MPC",full:"Approximating Global Contact-Implicit MPC via Sampling and Local Complementarity",org:"UPenn",d:"2025-05",aid:"arXiv:2505.13350",venue:"IEEE RA-L 10(11):12117–12124",key:1,
  lead:"국소 상보성 기반 제어와 저차원 전역 샘플링을 결합해, 접촉 암시적 제어가 갇히던 국소 최소점을 벗어나려는 연구.",
  body:[
   ["문제","범용 정밀 조작을 하려면 접촉 풍부 행동을 실시간에 고안하고 실행해야 한다. 그런데 가능한 접촉 시퀀스의 수가 지수적이라 기존 모델 기반 제어기는 실시간 전역 최적화를 할 수 없다. 그래서 진전은 단순화된, 그러나 여전히 하이브리드인 모델로 국소 근사를 취하는 방향으로 이뤄져 왔고, 그 결과 제어기가 가까운 접촉만 활용할 수 있어 접촉 공간을 넓게 탐색하려면 외부 개입이 필요했다."],
@@ -626,7 +626,7 @@ const P = [
   ["위치","미해결 문제 12번에서 학습과 최적화를 결합하는 세 방식 중 계층 분해에 해당하는 대표 사례다."]],
  see:["cimpc-global","probeact","mpd","open-problems"]},
 
-{s:"zeroshot-dex",t:"mpc",n:"Zero-Shot Sim-to-Real 다지 파지",full:"Closing the Reality Gap: Zero-Shot Sim-to-Real Deployment for Dexterous Force-Based Grasping and Manipulation",org:"UCL 외",d:"2026-01",aid:"arXiv:2601.02778",venue:"arXiv 프리프린트",
+{s:"zeroshot-dex",t:"mpc",n:"Closing the Reality Gap",full:"Closing the Reality Gap: Zero-Shot Sim-to-Real Deployment for Dexterous Force-Based Grasping and Manipulation",org:"UCL 외",d:"2026-01",aid:"arXiv:2601.02778",venue:"arXiv 프리프린트",
  lead:"조밀 촉각 피드백과 관절 토크 감지로 물리적 상호작용을 명시적으로 조절하는 sim-to-real 강화학습 프레임워크.",
  body:[
   ["문제","로코모션에서는 sim-to-real RL이 산업 배치까지 갔지만 다지 손에서는 그렇지 못했다. 원인은 접촉 물리와 구동기 동역학의 모델 오차다. 다지 손은 접촉점이 많고 케이블·기어 구동의 비선형성이 커서 시뮬레이션과 실제가 크게 어긋난다."],
@@ -645,10 +645,10 @@ const P = [
  lead:"접촉점 선택과 궤적 계획을 계단식 최적화로 함께 푼다.",
  body:[
   ["문제","접촉 암시적 궤적 최적화는 허용 접촉점의 수가 늘어나면 해 시간이 가파르게 증가한다. 그래서 실제로는 소수의 단순 기하만 접촉 가능하다고 미리 제한하는데, 이것이 적용 범위를 좁힌다."],
-  ["핵심 아이디어","어느 점이 실제로 중요한지를 최적화 과정 안에서 판별한다. STOCS 계열이 제안한 착상으로, 유효한 접촉점과 시점을 반복적으로 식별해 매 하위 문제의 변수와 제약 수를 줄인다. 이 논문은 그 선택과 계획을 계단식 구조로 결합했다."]],
+  ["핵심 아이디어","어느 점이 실제로 중요한지를 최적화 과정 안에서 판별한다. STOCS(Simultaneous Trajectory Optimization and Contact Selection) 계열이 제안한 착상으로, 유효한 접촉점과 시점을 반복적으로 식별해 매 하위 문제의 변수와 제약 수를 줄인다. 이 논문은 그 선택과 계획을 계단식 구조로 결합했다."]],
  see:["cimpc-global","fast-cimpc"]},
 
-{s:"parallel-smpc-real",t:"mpc",n:"대규모 병렬 샘플링 MPC 실기 배치",full:"Real-World Deployment of Massively Parallel Sampling-Based MPC for Contact-Rich Manipulation",org:"TU Darmstadt · DFKI",d:"2026-06",aid:"arXiv:2606.20712",venue:"arXiv 프리프린트",key:1,
+{s:"parallel-smpc-real",t:"mpc",n:"Massively Parallel Sampling-Based MPC",full:"Real-World Deployment of Massively Parallel Sampling-Based MPC for Contact-Rich Manipulation",org:"TU Darmstadt · DFKI",d:"2026-06",aid:"arXiv:2606.20712",venue:"arXiv 프리프린트",key:1,
  lead:"샘플링 기반 MPC를 실제 로봇에 배치하고 무엇이 왜 안 되는지를 구체적으로 분석한 연구.",
  body:[
   ["동기","샘플링 기반 MPC는 그래디언트 없는 최적화와 대규모 병렬 GPU 시뮬레이션을 결합한다는 점에서 접촉 조작에 유망하지만, 기존 연구 대부분이 단순화된 동역학에 의존하거나 시뮬레이션에 머물렀다. 실기에서 무엇이 병목인지가 정리되지 않았다는 것이 이 논문의 출발점이다."],
@@ -762,7 +762,7 @@ const P = [
   ["문제","선행 연구는 인간 영상을 리타게팅하고 렌더링해 로봇 데이터로 바꾸면 소규모에서 과제별 정책을 얻을 수 있다는 것까지 보였다. 그러나 이 방식이 VLA 사전학습 수준의 규모에서도 이득을 주는지는 검증되지 않았다."],
   ["핵심 아이디어","세 단계 파이프라인을 규모 있게 돌린다. 액션 리타게팅으로 인간 손 동작을 로봇 액션으로 옮기고, 로봇팔 시각 합성으로 영상에서 사람 손을 로봇으로 치환하며, 다층 품질 큐레이션으로 실패한 변환을 걸러낸다. 잠재 액션을 쓰는 [[lapa]] 계열과 달리 실제 로봇 액션 공간으로 직접 변환한다는 점이 다르다."]],
  see:["egoscale","humanscale","wh0","spider"]},
-{s:"reactive-grasp-vf",t:"mpc",n:"계층적 반응형 파지 (속도장 + QP)",full:"A Reactive Grasping Framework for Multi-DoF Grippers via Task Space Velocity Fields and Joint Space QP",org:"MIT (Yonghyeon Lee, Tzu-Yuan Lin, Alexander Alexiev, Sangbae Kim)",d:"2025-09",aid:"arXiv:2509.01044",venue:"arXiv 프리프린트 (심사 중)",key:1,
+{s:"reactive-grasp-vf",t:"mpc",n:"Reactive Grasping (VF + QP)",full:"A Reactive Grasping Framework for Multi-DoF Grippers via Task Space Velocity Fields and Joint Space QP",org:"MIT (Yonghyeon Lee, Tzu-Yuan Lin, Alexander Alexiev, Sangbae Kim)",d:"2025-09",aid:"arXiv:2509.01044",venue:"arXiv 프리프린트 (심사 중)",key:1,
  lead:"저차원 태스크 공간에서 전역 계획하고 전체 관절 공간에서는 국소 추종만 하는 2층 구조로, 다자유도 그리퍼의 실시간 반응형 파지를 구현했다.",
  body:[
   ["문제","고자유도 시스템에서 반응형 충돌 회피 계획이 어려운 이유는 상태 차원과 계획 지평이 동시에 커지면 탐색 공간이 조합적으로 폭발하기 때문이다. 계산 비용이 양쪽에 대해 3차로 자라므로, 팔 자유도의 두 배가 넘는 팔-손 시스템에서는 [[curobo]] 같은 GPU 가속 솔버로도 준반응적 수준에 머문다는 것이 저자들의 진단이다. 반대로 인공 포텐셜장이나 동역학계 기반 반응형 기법은 빠르지만, 태스크 공간에서 여러 장을 합치면 가중치 튜닝이 번거롭고 와인잔 같은 심한 오목 형상을 tree-of-stars류 추상으로 표현하기 어려우며 합성된 장에 수렴 보장이 없다."],
@@ -776,7 +776,7 @@ const P = [
   ["[[curobov2]]와의 관계","둘 다 재계획한다는 점은 같고, 차이는 재계획의 차원이다. 이 논문은 손끝당 3차원 문제를 SQP 3회 정도로 풀고, cuRoboV2는 15자유도 관절 공간에서 지평 전체를 48ms에 푼다. 목표 표현도 다르다. cuRoboV2의 목표는 엔드이펙터 pose이고 그리퍼는 충돌 구로만 존재하는 반면, 여기서는 여러 손끝 위치·자세가 각각 별개의 태스크 좌표다. 오목 물체 접근 중 손가락이 형상을 따라 말려드는 거동은 목표 자세 하나로 표현되지 않으므로 대체 관계가 아니다."]],
  see:["curobov2","reactive-dex-rl-qp","cimpc-global","fast-cimpc"]},
 
-{s:"reactive-dex-rl-qp",t:"mpc",n:"계층적 RL + QP 반응형 정밀 파지",full:"Learning Reactive Dexterous Grasping via Hierarchical Task-Space RL Planning and Joint-Space QP Control",org:"MIT",d:"2026-05",aid:"arXiv:2605.03363",venue:"arXiv 프리프린트",src:"abs",
+{s:"reactive-dex-rl-qp",t:"mpc",n:"Reactive Dexterous Grasping (RL + QP)",full:"Learning Reactive Dexterous Grasping via Hierarchical Task-Space RL Planning and Joint-Space QP Control",org:"MIT",d:"2026-05",aid:"arXiv:2605.03363",venue:"arXiv 프리프린트",src:"abs",
  lead:"[[reactive-grasp-vf]]의 상위 속도장을 다중 에이전트 강화학습 플래너로 대체한 후속 연구.",
  body:[
   ["핵심 아이디어","상위 공간 의도와 하위 관절 실행을 명시적으로 분리한다. 팔 에이전트와 손 에이전트로 특화된 다중 에이전트 RL이 태스크 공간 속도 명령을 내고, GPU 병렬 QP 제어기가 이를 관절 속도로 변환하면서 기구학 한계와 충돌 회피를 엄격히 강제한다. 학습을 상위 태스크 공간 추론에만 국한시키면 수렴이 빨라지고 하드웨어 안전이 구조적으로 보장된다는 논지다."],
