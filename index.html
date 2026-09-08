@@ -8,8 +8,17 @@
 window.MathJax = {
   tex: { inlineMath: [["$","$"],["\\(","\\)"]], displayMath: [["$$","$$"],["\\[","\\]"]], processEscapes: true },
   options: { skipHtmlTags: ["script","noscript","style","textarea","pre","code"] },
-  startup: { typeset: false }
+  svg: { fontCache: "global" }
 };
+// 라우터가 본문을 갈아끼운 뒤 호출한다. MathJax가 아직 로드되지 않았으면
+// 기본 startup 이 최초 1회 전체 페이지를 처리하므로 그대로 넘긴다.
+function mjTypeset(){
+  var el = document.getElementById("main");
+  if(!el || !window.MathJax || !window.MathJax.startup || !window.MathJax.startup.promise) return;
+  window.MathJax.startup.promise
+    .then(function(){ if(MathJax.typesetClear) MathJax.typesetClear([el]); return MathJax.typesetPromise([el]); })
+    .catch(function(){});
+}
 </script>
 <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 <style>
@@ -1446,7 +1455,7 @@ function render(path, anchor){
   markNav(seg);
   if(anchor){ const t=document.getElementById(anchor); if(t){ try{t.scrollIntoView();}catch(e){} return; } }
   try{ window.scrollTo(0,0); }catch(e){}
-  try{ if(window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([document.getElementById("main")]).catch(function(){}); }catch(e){}
+  try{ mjTypeset(); }catch(e){}
 }
 
 function navigate(path, anchor, sync){
